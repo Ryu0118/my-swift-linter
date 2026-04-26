@@ -4,6 +4,10 @@ A collection of general-purpose Swift lint rules built on [swift-ast-lint](https
 
 ## Installation
 
+```bash
+curl -fsSL https://raw.githubusercontent.com/Ryu0118/my-swift-linter/main/install.sh | bash
+```
+
 ### Nest ([mtj0928/nest](https://github.com/mtj0928/nest))
 
 ```bash
@@ -14,16 +18,6 @@ nest install Ryu0118/my-swift-linter
 
 ```bash
 mise use -g ubi:Ryu0118/my-swift-linter
-```
-
-### Manual (curl)
-
-Download the latest release archive for your platform from the [Releases](https://github.com/Ryu0118/my-swift-linter/releases/latest) page, then extract the binary:
-
-```bash
-# macOS (universal)
-curl -fsSL https://github.com/Ryu0118/my-swift-linter/releases/latest/download/swift-ast-lint-<version>-darwin-universal.tar.gz | tar -xz
-sudo mv swift-ast-lint /usr/local/bin/
 ```
 
 ### Build from source
