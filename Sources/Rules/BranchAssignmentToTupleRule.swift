@@ -4,25 +4,20 @@ import SwiftSyntax
 /// Detects the pattern of declaring one or more uninitialized `let` variables followed by an
 /// `if/else` or `switch` that assigns every variable in every branch.
 ///
-/// For a single variable this can be replaced with an `if` expression:
+/// All cases can be collapsed into a single `let` binding using an `if`/`switch` expression:
 ///
 /// ```swift
-/// // ❌ verbose branch assignment
+/// // ❌ single variable
 /// let hoge: Int
 /// if let x {
 ///     hoge = x
 /// } else {
 ///     hoge = y
 /// }
+/// // ✅
+/// let hoge = if let x { x } else { y }
 ///
-/// // ✅ if expression
-/// let hoge: Int = if let x { x } else { y }
-/// ```
-///
-/// For multiple variables a tuple binding is preferred:
-///
-/// ```swift
-/// // ❌ verbose branch assignment
+/// // ❌ multiple variables
 /// let days: Int
 /// let pages: Int
 /// if let duration {
@@ -32,13 +27,11 @@ import SwiftSyntax
 ///     days = period.days
 ///     pages = period.pages
 /// }
-///
-/// // ✅ tuple binding
-/// let (days, pages): (Int, Int)
-/// if let duration {
-///     (days, pages) = (duration.days, duration.numPages)
+/// // ✅
+/// let (days, pages) = if let duration {
+///     (duration.days, duration.numPages)
 /// } else {
-///     (days, pages) = (period.days, period.pages)
+///     (period.days, period.pages)
 /// }
 /// ```
 ///
@@ -132,9 +125,9 @@ private final class BranchAssignmentToTupleVisitor: SyntaxVisitor {
         guard matches else { return }
         context.report(
             on: items[runStart],
-            message: "Prefer a tuple binding over separate `let` declarations "
-                + "followed by branch assignment. "
-                + "See .claude/rules/BEST_PRACTICES.md for the preferred pattern.",
+            message: "Collapse `let` declarations and branch assignment into a single "
+                + "`let x = if ... { ... } else { ... }` binding. "
+                + "For multiple variables use `let (a, b) = if ... { (x, y) } else { (p, q) }`.",
             severity: .warning
         )
     }
