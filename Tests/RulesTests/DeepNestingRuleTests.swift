@@ -155,7 +155,7 @@ struct DeepNestingRuleTests {
             }
         }
         """
-        let diagnostics = await rule.lint(source: source, argsYAML: "warning: 2\nerror: 4\n")
+        let diagnostics = await rule.lint(source: source, argsYAML: "warning_depth: 2\nerror_depth: 4\n")
         #expect(diagnostics.count == 1)
         #expect(diagnostics[0].severity == .warning)
     }
@@ -171,7 +171,7 @@ struct DeepNestingRuleTests {
             }
         }
         """
-        let diagnostics = await rule.lint(source: source, argsYAML: "warning: 2\nerror: 3\n")
+        let diagnostics = await rule.lint(source: source, argsYAML: "warning_depth: 2\nerror_depth: 3\n")
         #expect(diagnostics.count == 2)
         #expect(diagnostics.contains { $0.severity == .error })
     }
@@ -187,7 +187,7 @@ struct DeepNestingRuleTests {
             }
         }
         """
-        let diagnostics = await rule.lint(source: source, argsYAML: "warning: 10\nerror: 15\n")
+        let diagnostics = await rule.lint(source: source, argsYAML: "warning_depth: 10\nerror_depth: 15\n")
         #expect(diagnostics.isEmpty)
     }
 

@@ -2,10 +2,15 @@ import SwiftASTLint
 import SwiftSyntax
 
 struct DeepNestingArgs: Codable {
-    /// Nesting depth at which a warning is emitted. Must be less than `error`.
-    var warning: Int = 3
+    /// Nesting depth at which a warning is emitted. Must be less than `error_depth`.
+    var warningDepth: Int = 3
     /// Nesting depth at which an error is emitted.
-    var error: Int = 5
+    var errorDepth: Int = 5
+
+    enum CodingKeys: String, CodingKey {
+        case warningDepth = "warning_depth"
+        case errorDepth = "error_depth"
+    }
 }
 
 /// Emits a warning or error when control flow nesting exceeds a threshold.
@@ -17,14 +22,14 @@ struct DeepNestingArgs: Codable {
 /// rules:
 ///   deep-nesting:
 ///     args:
-///       warning: 3
-///       error: 5
+///       warning_depth: 3
+///       error_depth: 5
 /// ```
 let deepNestingRule = ParameterizedRule(
     id: "deep-nesting",
     defaultArguments: DeepNestingArgs()
 ) { file, context, args in
-    let visitor = DeepNestingVisitor(warningDepth: args.warning, errorDepth: args.error, context: context)
+    let visitor = DeepNestingVisitor(warningDepth: args.warningDepth, errorDepth: args.errorDepth, context: context)
     visitor.walk(file)
 }
 

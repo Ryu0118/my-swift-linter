@@ -2,14 +2,19 @@ import SwiftASTLint
 import SwiftSyntax
 
 struct SingleLargeTypeArgs: Codable {
-    /// Line count at which a type is considered large enough to warn. Must be less than `error`.
-    var warning: Int = 50
+    /// Line count at which a type is considered large enough to warn. Must be less than `error_lines`.
+    var warningLines: Int = 50
     /// Line count at which a type triggers an error when multiple appear in one file.
-    var error: Int = 100
+    var errorLines: Int = 100
+
+    enum CodingKeys: String, CodingKey {
+        case warningLines = "warning_lines"
+        case errorLines = "error_lines"
+    }
 }
 
 /// Flags files that contain two or more large `public`/`package` types.
-/// Emits a warning when each type exceeds `warning` lines, an error when each exceeds `error` lines.
+/// Emits a warning when each type exceeds `warning_lines` lines, an error when each exceeds `error_lines` lines.
 /// Nested types are not counted as top-level declarations.
 ///
 /// Configure via YAML:
@@ -17,21 +22,21 @@ struct SingleLargeTypeArgs: Codable {
 /// rules:
 ///   single-large-type-per-file:
 ///     args:
-///       warning: 50
-///       error: 100
+///       warning_lines: 50
+///       error_lines: 100
 /// ```
 let singleLargeTypePerFileRule = ParameterizedRule(
     id: "single-large-type-per-file",
     defaultArguments: SingleLargeTypeArgs()
 ) { file, context, args in
-    let visitor = LargeTypeCollector(minLines: args.warning)
+    let visitor = LargeTypeCollector(minLines: args.warningLines)
     visitor.walk(file)
 
     let largeTypes = visitor.largeTypes
     guard largeTypes.count >= 2 else { return }
     for info in largeTypes {
-        let severity: Severity = info.lineCount >= args.error ? .error : .warning
-        let threshold = info.lineCount >= args.error ? args.error : args.warning
+        let severity: Severity = info.lineCount >= args.errorLines ? .error : .warning
+        let threshold = info.lineCount >= args.errorLines ? args.errorLines : args.warningLines
         context.report(
             on: info.node,
             message: "\(info.name) is \(info.lineCount) lines. Only one large (>= \(threshold) lines) public/package type per file is allowed. Split into separate files.",

@@ -34,8 +34,8 @@ swift build -c release
 
 | Rule ID | Severity | Description |
 |---------|----------|-------------|
-| `deep-nesting` | warning / error | Flags control flow nesting — warning at depth ≥ `warning` (default: 3), error at depth ≥ `error` (default: 5) |
-| `single-large-type-per-file` | warning / error | Flags files with two or more large public/package types — warning at ≥ `warning` lines (default: 50), error at ≥ `error` lines (default: 100) |
+| `deep-nesting` | warning / error | Flags control flow nesting — warning at depth ≥ `warning_depth` (default: 3), error at depth ≥ `error_depth` (default: 5) |
+| `single-large-type-per-file` | warning / error | Flags files with two or more large public/package types — warning at ≥ `warning_lines` lines (default: 50), error at ≥ `error_lines` lines (default: 100) |
 | `property-declaration-ordering` | warning | Properties must be grouped by property wrapper, then by access modifier |
 | `function-access-modifier-grouping` | warning | Functions must be grouped by access modifier (open → public → … → private) |
 | `swiftui-view-property` | error | `return` is forbidden in `some View` properties; `@ViewBuilder` is required when the body contains top-level `let`/`var`/`if`/`switch` |
@@ -72,8 +72,8 @@ func process() {
 rules:
   deep-nesting:
     args:
-      warning: 3   # default
-      error: 5     # default
+      warning_depth: 3   # default
+      error_depth: 5     # default
 ```
 
 ### single-large-type-per-file
@@ -94,8 +94,8 @@ public struct CacheManager  { /* 55 lines */ }
 rules:
   single-large-type-per-file:
     args:
-      warning: 50    # default
-      error: 100     # default
+      warning_lines: 50    # default
+      error_lines: 100     # default
 ```
 
 ### property-declaration-ordering

@@ -152,7 +152,7 @@ struct SingleLargeTypePerFileRuleTests {
     @Test("YAML warning threshold lowers to 15 — 20-line types produce warning")
     func yamlWarningOverride() async {
         let source = publicStruct(name: "Foo", lines: 20) + "\n" + publicStruct(name: "Bar", lines: 20)
-        let diagnostics = await rule.lint(source: source, argsYAML: "warning: 15\nerror: 50\n")
+        let diagnostics = await rule.lint(source: source, argsYAML: "warning_lines: 15\nerror_lines: 50\n")
         #expect(diagnostics.count == 2)
         #expect(diagnostics.allSatisfy { $0.severity == .warning })
     }
@@ -160,7 +160,7 @@ struct SingleLargeTypePerFileRuleTests {
     @Test("YAML error threshold lowers to 15 — 20-line types produce error")
     func yamlErrorOverride() async {
         let source = publicStruct(name: "Foo", lines: 20) + "\n" + publicStruct(name: "Bar", lines: 20)
-        let diagnostics = await rule.lint(source: source, argsYAML: "warning: 10\nerror: 15\n")
+        let diagnostics = await rule.lint(source: source, argsYAML: "warning_lines: 10\nerror_lines: 15\n")
         #expect(diagnostics.count == 2)
         #expect(diagnostics.allSatisfy { $0.severity == .error })
     }
