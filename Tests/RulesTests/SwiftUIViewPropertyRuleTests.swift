@@ -3,7 +3,7 @@ import SwiftASTLint
 import SwiftASTLintTestSupport
 import Testing
 
-@Suite("swiftui-view-property: detects return and missing @ViewBuilder in some View computed properties")
+@Suite("swiftui-view-property: detects return and missing @ViewBuilder in some View computed properties and functions")
 struct SwiftUIViewPropertyRuleTests {
     private let rule: any RuleProtocol
 
@@ -246,6 +246,164 @@ struct SwiftUIViewPropertyRuleTests {
                 Text("zoom: \\(zoom)")
                 Text("second line")
             }
+        }
+        """
+        let diagnostics = await rule.lint(source: source)
+        #expect(diagnostics.isEmpty)
+    }
+
+    // MARK: - Function: Pattern A (return forbidden)
+
+    @Test("error when return is used in some View func without @ViewBuilder")
+    func functionReturnWithoutViewBuilder() async {
+        let source = """
+        struct MyView: View {
+            private func content(_ flag: Bool) -> some View {
+                let x = 42
+                return Text("\\(x)")
+            }
+            var body: some View { content(true) }
+        }
+        """
+        let diagnostics = await rule.lint(source: source)
+        #expect(diagnostics.contains { $0.severity == .error })
+    }
+
+    @Test("error when return is used in some View func with @ViewBuilder")
+    func functionReturnWithViewBuilder() async {
+        let source = """
+        struct MyView: View {
+            @ViewBuilder
+            private func content() -> some View {
+                return Text("hello")
+            }
+            var body: some View { content() }
+        }
+        """
+        let diagnostics = await rule.lint(source: source)
+        #expect(diagnostics.contains { $0.severity == .error })
+    }
+
+    // MARK: - Function: Pattern B (@ViewBuilder required)
+
+    @Test("error when top-level let in some View func without @ViewBuilder")
+    func functionTopLevelLetWithoutViewBuilder() async {
+        let source = """
+        struct MyView: View {
+            private func label() -> some View {
+                let text = "hello"
+                return Text(text)
+            }
+            var body: some View { label() }
+        }
+        """
+        let diagnostics = await rule.lint(source: source)
+        #expect(diagnostics.contains { $0.severity == .error })
+    }
+
+    @Test("error when top-level if in some View func without @ViewBuilder")
+    func functionTopLevelIfWithoutViewBuilder() async {
+        let source = """
+        struct MyView: View {
+            let isLoading: Bool
+            private func content() -> some View {
+                if isLoading {
+                    ProgressView()
+                } else {
+                    Text("done")
+                }
+            }
+            var body: some View { content() }
+        }
+        """
+        let diagnostics = await rule.lint(source: source)
+        #expect(diagnostics.contains { $0.severity == .error })
+    }
+
+    @Test("error when top-level switch in some View func without @ViewBuilder")
+    func functionTopLevelSwitchWithoutViewBuilder() async {
+        let source = """
+        enum State { case loading, done }
+        struct MyView: View {
+            let state: State
+            private func content() -> some View {
+                switch state {
+                case .loading: ProgressView()
+                case .done: Text("done")
+                }
+            }
+            var body: some View { content() }
+        }
+        """
+        let diagnostics = await rule.lint(source: source)
+        #expect(diagnostics.contains { $0.severity == .error })
+    }
+
+    // MARK: - Function: Non-violations
+
+    @Test("no error when some View func returns single view with no return keyword")
+    func functionDirectViewNoReturn() async {
+        let source = """
+        struct MyView: View {
+            private func content() -> some View {
+                Text("hello")
+            }
+            var body: some View { content() }
+        }
+        """
+        let diagnostics = await rule.lint(source: source)
+        #expect(diagnostics.isEmpty)
+    }
+
+    @Test("no error when @ViewBuilder func uses top-level if without return")
+    func functionViewBuilderWithIfNoReturn() async {
+        let source = """
+        struct MyView: View {
+            let isLoading: Bool
+            @ViewBuilder
+            private func content() -> some View {
+                if isLoading {
+                    ProgressView()
+                } else {
+                    Text("done")
+                }
+            }
+            var body: some View { content() }
+        }
+        """
+        let diagnostics = await rule.lint(source: source)
+        #expect(diagnostics.isEmpty)
+    }
+
+    @Test("no error when @ViewBuilder func uses top-level switch without return")
+    func functionViewBuilderWithSwitchNoReturn() async {
+        let source = """
+        enum State { case loading, done }
+        struct MyView: View {
+            let state: State
+            @ViewBuilder
+            private func content() -> some View {
+                switch state {
+                case .loading: ProgressView()
+                case .done: Text("done")
+                }
+            }
+            var body: some View { content() }
+        }
+        """
+        let diagnostics = await rule.lint(source: source)
+        #expect(diagnostics.isEmpty)
+    }
+
+    @Test("no error for non-View function using return")
+    func nonViewFunctionWithReturn() async {
+        let source = """
+        struct MyView: View {
+            private func title() -> String {
+                let base = "hello"
+                return base + " world"
+            }
+            var body: some View { Text(title()) }
         }
         """
         let diagnostics = await rule.lint(source: source)

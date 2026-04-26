@@ -2,15 +2,15 @@ import SwiftASTLint
 import SwiftDiagnostics
 import SwiftSyntax
 
-/// Enforces two rules for `some View`-returning computed properties.
+/// Enforces two rules for `some View`-returning computed properties and functions.
 ///
 /// **Pattern A — `return` is forbidden**
-/// Using `return` inside a `some View` computed property body is always a violation,
+/// Using `return` inside a `some View` computed property or function body is always a violation,
 /// regardless of whether `@ViewBuilder` is present.
 /// Fix-It: removes the `return` keyword.
 ///
 /// **Pattern B — `@ViewBuilder` is required**
-/// When a `some View` computed property body contains any of the following at the top level
+/// When a `some View` computed property or function body contains any of the following at the top level
 /// without `@ViewBuilder`, a violation is reported:
 /// - `let`/`var` declarations
 /// - `if` expressions
@@ -20,7 +20,7 @@ import SwiftSyntax
 /// meaning both branches must return the exact same concrete type — which defeats the
 /// purpose of `some View`. Adding `@ViewBuilder` lets the result builder compose the views
 /// from each branch naturally, and eliminates the need for `return`.
-/// Fix-It: inserts `@ViewBuilder` before the `var` keyword.
+/// Fix-It: inserts `@ViewBuilder` before the `var` keyword (properties) or `func` keyword (functions).
 ///
 /// **Exception**: `var body: some View` is excluded because `View.body` already has
 /// an implicit `@ViewBuilder` from the protocol requirement.
@@ -45,6 +45,19 @@ private final class SwiftUIViewPropertyVisitor: SyntaxVisitor {
 
         if !hasViewBuilderAttribute(node) {
             checkViewBuilderRequired(for: node, statements: body.statements)
+        }
+
+        return .visitChildren
+    }
+
+    override func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
+        guard isSomeViewFunction(node) else { return .visitChildren }
+        guard let body = node.body else { return .visitChildren }
+
+        checkReturnStatements(in: body.statements)
+
+        if !hasViewBuilderAttributeOnFunction(node) {
+            checkViewBuilderRequiredForFunction(for: node, statements: body.statements)
         }
 
         return .visitChildren
@@ -75,16 +88,7 @@ private final class SwiftUIViewPropertyVisitor: SyntaxVisitor {
     // MARK: - Pattern B: @ViewBuilder requirement
 
     private func checkViewBuilderRequired(for node: VariableDeclSyntax, statements: CodeBlockItemListSyntax) {
-        let needsViewBuilder = statements.contains { stmt in
-            if stmt.item.is(VariableDeclSyntax.self) { return true }
-            // if/switch appear as IfExprSyntax/SwitchExprSyntax wrapped in ExpressionStmtSyntax
-            if let exprStmt = stmt.item.as(ExpressionStmtSyntax.self) {
-                return exprStmt.expression.is(IfExprSyntax.self)
-                    || exprStmt.expression.is(SwitchExprSyntax.self)
-            }
-            return false
-        }
-        guard needsViewBuilder else { return }
+        guard needsViewBuilder(statements) else { return }
 
         let varKeyword = node.bindingSpecifier
         context.reportWithFix(
@@ -103,6 +107,42 @@ private final class SwiftUIViewPropertyVisitor: SyntaxVisitor {
                 ),
             ]
         )
+    }
+
+    private func checkViewBuilderRequiredForFunction(
+        for node: FunctionDeclSyntax,
+        statements: CodeBlockItemListSyntax
+    ) {
+        guard needsViewBuilder(statements) else { return }
+
+        let funcKeyword = node.funcKeyword
+        context.reportWithFix(
+            on: node,
+            message: "Add `@ViewBuilder` when a `some View` function uses "
+                + "`let`/`var`, `if`, or `switch` at the top level. `return` is then unnecessary.",
+            severity: .error,
+            fixIts: [
+                FixIt.replace(
+                    message: SimpleFixItMessage("Add `@ViewBuilder`"),
+                    oldNode: funcKeyword,
+                    newNode: funcKeyword.with(
+                        \.leadingTrivia,
+                        funcKeyword.leadingTrivia + [.unexpectedText("@ViewBuilder ")]
+                    )
+                ),
+            ]
+        )
+    }
+
+    private func needsViewBuilder(_ statements: CodeBlockItemListSyntax) -> Bool {
+        statements.contains { stmt in
+            if stmt.item.is(VariableDeclSyntax.self) { return true }
+            if let exprStmt = stmt.item.as(ExpressionStmtSyntax.self) {
+                return exprStmt.expression.is(IfExprSyntax.self)
+                    || exprStmt.expression.is(SwitchExprSyntax.self)
+            }
+            return false
+        }
     }
 
     // MARK: - Helpers
@@ -142,6 +182,20 @@ private final class SwiftUIViewPropertyVisitor: SyntaxVisitor {
     }
 
     private func hasViewBuilderAttribute(_ node: VariableDeclSyntax) -> Bool {
+        node.attributes.contains { attr in
+            guard case let .attribute(attrSyntax) = attr else { return false }
+            return attrSyntax.attributeName.description.trimmingCharacters(in: .whitespaces) == "ViewBuilder"
+        }
+    }
+
+    /// Returns `true` when the function returns `some View` (or `some <X>View`).
+    private func isSomeViewFunction(_ node: FunctionDeclSyntax) -> Bool {
+        guard let returnType = node.signature.returnClause?.type else { return false }
+        let typeText = returnType.description.trimmingCharacters(in: .whitespaces)
+        return typeText.hasPrefix("some ") && typeText.contains("View")
+    }
+
+    private func hasViewBuilderAttributeOnFunction(_ node: FunctionDeclSyntax) -> Bool {
         node.attributes.contains { attr in
             guard case let .attribute(attrSyntax) = attr else { return false }
             return attrSyntax.attributeName.description.trimmingCharacters(in: .whitespaces) == "ViewBuilder"
