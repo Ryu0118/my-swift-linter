@@ -2,6 +2,40 @@
 
 A collection of general-purpose Swift lint rules built on [swift-ast-lint](https://github.com/Ryu0118/swift-ast-lint).
 
+## Installation
+
+### Nest ([mtj0928/nest](https://github.com/mtj0928/nest))
+
+```bash
+nest install Ryu0118/my-swift-linter
+```
+
+### Mise ([jdx/mise](https://github.com/jdx/mise))
+
+```bash
+mise use -g ubi:Ryu0118/my-swift-linter
+```
+
+### Manual (curl)
+
+Download the latest release archive for your platform from the [Releases](https://github.com/Ryu0118/my-swift-linter/releases/latest) page, then extract the binary:
+
+```bash
+# macOS (universal)
+curl -fsSL https://github.com/Ryu0118/my-swift-linter/releases/latest/download/swift-ast-lint-<version>-darwin-universal.tar.gz | tar -xz
+sudo mv swift-ast-lint /usr/local/bin/
+```
+
+### Build from source
+
+Requires Swift 6.2+ and macOS 15+.
+
+```bash
+git clone https://github.com/Ryu0118/my-swift-linter.git
+cd my-swift-linter
+swift build -c release
+```
+
 ## Rules
 
 | Rule ID | Severity | Description |
