@@ -15,7 +15,7 @@ let package = Package(
             .product(name: "SwiftSyntax", package: "swift-syntax"),
         ]),
         .executableTarget(
-            name: "swift-ast-lint",
+            name: "my-swift-linter",
             dependencies: ["Rules"]
         ),
         .testTarget(

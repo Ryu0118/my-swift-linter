@@ -2,7 +2,7 @@
 set -eu
 
 REPO="Ryu0118/my-swift-linter"
-BIN_NAME="swift-ast-lint"
+BIN_NAME="my-swift-linter"
 INSTALL_DIR="${INSTALL_DIR:-$HOME/.local/bin}"
 FORCE="${FORCE:-}"
 

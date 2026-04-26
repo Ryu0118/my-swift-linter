@@ -10,7 +10,7 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  BINARY_NAME: swift-ast-lint
+  BINARY_NAME: my-swift-linter
 
 permissions:
   contents: write
