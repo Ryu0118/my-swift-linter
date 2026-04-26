@@ -8,4 +8,5 @@ public let rules = RuleSet {
     propertyDeclarationOrderingRule
     functionAccessModifierGroupingRule
     swiftUIViewPropertyRule
+    branchAssignmentToTupleRule
 }
