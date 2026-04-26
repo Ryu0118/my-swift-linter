@@ -33,22 +33,31 @@ struct SingleLargeTypePerFileRuleTests {
 
     // MARK: - Violation tests
 
-    @Test("error when two public types each >= 50 lines in one file")
+    @Test("warning when two public types each >= 50 lines (default warning threshold)")
     func twoLargePublicTypes() async {
         let source = publicStruct(name: "Foo", lines: 50) + "\n" + publicStruct(name: "Bar", lines: 50)
+        let diagnostics = await rule.lint(source: source)
+        #expect(diagnostics.count == 2)
+        #expect(diagnostics.allSatisfy { $0.severity == .warning })
+    }
+
+    @Test("error when two public types each >= 100 lines (default error threshold)")
+    func twoLargePublicTypesError() async {
+        let source = publicStruct(name: "Foo", lines: 100) + "\n" + publicStruct(name: "Bar", lines: 100)
         let diagnostics = await rule.lint(source: source)
         #expect(diagnostics.count == 2)
         #expect(diagnostics.allSatisfy { $0.severity == .error })
     }
 
-    @Test("error when two package types each >= 50 lines in one file")
+    @Test("warning when two package types each >= 50 lines")
     func twoLargePackageTypes() async {
         let source = packageStruct(name: "Foo", lines: 50) + "\n" + packageStruct(name: "Bar", lines: 50)
         let diagnostics = await rule.lint(source: source)
         #expect(diagnostics.count == 2)
+        #expect(diagnostics.allSatisfy { $0.severity == .warning })
     }
 
-    @Test("error when mixed public and package large types")
+    @Test("warning when mixed public and package large types")
     func mixedPublicPackage() async {
         let source = publicStruct(name: "Foo", lines: 50) + "\n" + packageStruct(name: "Bar", lines: 50)
         let diagnostics = await rule.lint(source: source)
@@ -115,27 +124,45 @@ struct SingleLargeTypePerFileRuleTests {
 
     // MARK: - Boundary
 
-    @Test("no error at 49 lines (below threshold)")
-    func belowThreshold() async {
+    @Test("no violation at 49 lines (below warning threshold)")
+    func belowWarningThreshold() async {
         let source = publicStruct(name: "Foo", lines: 49) + "\n" + publicStruct(name: "Bar", lines: 49)
         let diagnostics = await rule.lint(source: source)
         #expect(diagnostics.isEmpty)
     }
 
-    @Test("error at exactly 50 lines (at threshold)")
-    func atThreshold() async {
+    @Test("warning at exactly 50 lines (at warning threshold)")
+    func atWarningThreshold() async {
         let source = publicStruct(name: "Foo", lines: 50) + "\n" + publicStruct(name: "Bar", lines: 50)
         let diagnostics = await rule.lint(source: source)
         #expect(diagnostics.count == 2)
+        #expect(diagnostics.allSatisfy { $0.severity == .warning })
+    }
+
+    @Test("error at exactly 100 lines (at error threshold)")
+    func atErrorThreshold() async {
+        let source = publicStruct(name: "Foo", lines: 100) + "\n" + publicStruct(name: "Bar", lines: 100)
+        let diagnostics = await rule.lint(source: source)
+        #expect(diagnostics.count == 2)
+        #expect(diagnostics.allSatisfy { $0.severity == .error })
     }
 
     // MARK: - YAML args override
 
-    @Test("YAML args override min_lines")
-    func yamlOverride() async {
+    @Test("YAML warning threshold lowers to 15 — 20-line types produce warning")
+    func yamlWarningOverride() async {
         let source = publicStruct(name: "Foo", lines: 20) + "\n" + publicStruct(name: "Bar", lines: 20)
-        let diagnostics = await rule.lint(source: source, argsYAML: "min_lines: 15\n")
+        let diagnostics = await rule.lint(source: source, argsYAML: "warning: 15\nerror: 50\n")
         #expect(diagnostics.count == 2)
+        #expect(diagnostics.allSatisfy { $0.severity == .warning })
+    }
+
+    @Test("YAML error threshold lowers to 15 — 20-line types produce error")
+    func yamlErrorOverride() async {
+        let source = publicStruct(name: "Foo", lines: 20) + "\n" + publicStruct(name: "Bar", lines: 20)
+        let diagnostics = await rule.lint(source: source, argsYAML: "warning: 10\nerror: 15\n")
+        #expect(diagnostics.count == 2)
+        #expect(diagnostics.allSatisfy { $0.severity == .error })
     }
 
     // MARK: - Edge cases

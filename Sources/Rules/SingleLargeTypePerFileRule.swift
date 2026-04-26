@@ -2,31 +2,41 @@ import SwiftASTLint
 import SwiftSyntax
 
 struct SingleLargeTypeArgs: Codable {
-    var minLines: Int = 50
-    enum CodingKeys: String, CodingKey {
-        case minLines = "min_lines"
-    }
+    /// Line count at which a type is considered large enough to warn. Must be less than `error`.
+    var warning: Int = 50
+    /// Line count at which a type triggers an error when multiple appear in one file.
+    var error: Int = 100
 }
 
-/// Emits an error when two or more `public`/`package` types (enum, struct, class, actor)
-/// each exceeding `minLines` lines appear in the same file.
+/// Flags files that contain two or more large `public`/`package` types.
+/// Emits a warning when each type exceeds `warning` lines, an error when each exceeds `error` lines.
 /// Nested types are not counted as top-level declarations.
+///
+/// Configure via YAML:
+/// ```yaml
+/// rules:
+///   single-large-type-per-file:
+///     args:
+///       warning: 50
+///       error: 100
+/// ```
 let singleLargeTypePerFileRule = ParameterizedRule(
     id: "single-large-type-per-file",
     defaultArguments: SingleLargeTypeArgs()
 ) { file, context, args in
-    let visitor = LargeTypeCollector(minLines: args.minLines)
+    let visitor = LargeTypeCollector(minLines: args.warning)
     visitor.walk(file)
 
     let largeTypes = visitor.largeTypes
-    if largeTypes.count >= 2 {
-        for info in largeTypes {
-            context.report(
-                on: info.node,
-                message: "\(info.name) is \(info.lineCount) lines. Only one large (>= \(args.minLines) lines) public/package type per file is allowed. Split into separate files.",
-                severity: .error
-            )
-        }
+    guard largeTypes.count >= 2 else { return }
+    for info in largeTypes {
+        let severity: Severity = info.lineCount >= args.error ? .error : .warning
+        let threshold = info.lineCount >= args.error ? args.error : args.warning
+        context.report(
+            on: info.node,
+            message: "\(info.name) is \(info.lineCount) lines. Only one large (>= \(threshold) lines) public/package type per file is allowed. Split into separate files.",
+            severity: severity
+        )
     }
 }
 

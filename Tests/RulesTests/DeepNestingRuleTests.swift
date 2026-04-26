@@ -3,7 +3,7 @@ import SwiftASTLint
 import SwiftASTLintTestSupport
 import Testing
 
-@Suite("deep-nesting: detects control flow nested beyond max depth via AST")
+@Suite("deep-nesting: detects control flow nested beyond warning/error thresholds")
 struct DeepNestingRuleTests {
     private let rule: any RuleProtocol
 
@@ -13,8 +13,8 @@ struct DeepNestingRuleTests {
 
     // MARK: - Violation tests
 
-    @Test("error at depth 3 with default max 3")
-    func atThreshold() async {
+    @Test("warning at depth 3 (default warning threshold)")
+    func atWarningThreshold() async {
         let source = """
         func foo() {
             if true {
@@ -26,11 +26,30 @@ struct DeepNestingRuleTests {
         """
         let diagnostics = await rule.lint(source: source)
         #expect(diagnostics.count == 1)
-        #expect(diagnostics[0].severity == .error)
+        #expect(diagnostics[0].severity == .warning)
     }
 
-    @Test("error at depth 4 exceeds default max 3")
-    func aboveThreshold() async {
+    @Test("error at depth 5 (default error threshold)")
+    func atErrorThreshold() async {
+        let source = """
+        func foo() {
+            if true {
+                if true {
+                    if true {
+                        if true {
+                            if true { let _ = 0 }
+                        }
+                    }
+                }
+            }
+        }
+        """
+        let diagnostics = await rule.lint(source: source)
+        #expect(diagnostics.contains { $0.severity == .error })
+    }
+
+    @Test("depths 3 and 4 both produce warnings (below error threshold)")
+    func betweenThresholds() async {
         let source = """
         func foo() {
             if true {
@@ -43,14 +62,14 @@ struct DeepNestingRuleTests {
         }
         """
         let diagnostics = await rule.lint(source: source)
-        // depth 3 and depth 4 both trigger
         #expect(diagnostics.count == 2)
+        #expect(diagnostics.allSatisfy { $0.severity == .warning })
     }
 
     // MARK: - False positive tests
 
-    @Test("no error at depth 2 with default max 3")
-    func belowThreshold() async {
+    @Test("no violation at depth 2 (below warning threshold)")
+    func belowWarningThreshold() async {
         let source = """
         func foo() {
             if true {
@@ -108,7 +127,7 @@ struct DeepNestingRuleTests {
 
     // MARK: - Parameterized: all control flow types
 
-    @Test("detects all control flow types at depth 3", arguments: [
+    @Test("detects all control flow types at warning depth", arguments: [
         "if true { let _ = 0 }",
         "for _ in [] { let _ = 0 }",
         "while true { let _ = 0 }",
@@ -127,11 +146,8 @@ struct DeepNestingRuleTests {
 
     // MARK: - YAML args override
 
-    @Test("YAML args override max depth", arguments: [
-        ("max_depth: 2\n", 1),
-        ("max_depth: 10\n", 0),
-    ])
-    func yamlOverride(yaml: String, expectedCount: Int) async {
+    @Test("YAML warning threshold lowers to 2 — depth 2 produces warning")
+    func yamlWarningOverride() async {
         let source = """
         func foo() {
             if true {
@@ -139,8 +155,40 @@ struct DeepNestingRuleTests {
             }
         }
         """
-        let diagnostics = await rule.lint(source: source, argsYAML: yaml)
-        #expect(diagnostics.count == expectedCount)
+        let diagnostics = await rule.lint(source: source, argsYAML: "warning: 2\nerror: 4\n")
+        #expect(diagnostics.count == 1)
+        #expect(diagnostics[0].severity == .warning)
+    }
+
+    @Test("YAML error threshold lowers to 3 — depth 3 produces error")
+    func yamlErrorOverride() async {
+        let source = """
+        func foo() {
+            if true {
+                if true {
+                    if true { let _ = 0 }
+                }
+            }
+        }
+        """
+        let diagnostics = await rule.lint(source: source, argsYAML: "warning: 2\nerror: 3\n")
+        #expect(diagnostics.count == 2)
+        #expect(diagnostics.contains { $0.severity == .error })
+    }
+
+    @Test("YAML thresholds raised — no violation at depth 3")
+    func yamlThresholdsRaised() async {
+        let source = """
+        func foo() {
+            if true {
+                if true {
+                    if true { let _ = 0 }
+                }
+            }
+        }
+        """
+        let diagnostics = await rule.lint(source: source, argsYAML: "warning: 10\nerror: 15\n")
+        #expect(diagnostics.isEmpty)
     }
 
     // MARK: - Edge cases
@@ -151,7 +199,7 @@ struct DeepNestingRuleTests {
         #expect(diagnostics.isEmpty)
     }
 
-    @Test("message includes depth and max")
+    @Test("message includes current depth and threshold")
     func messageContent() async {
         let source = """
         func foo() {
@@ -165,6 +213,5 @@ struct DeepNestingRuleTests {
         let diagnostics = await rule.lint(source: source)
         #expect(diagnostics.count == 1)
         #expect(diagnostics[0].message.contains("3"))
-        #expect(diagnostics[0].message.contains("max"))
     }
 }

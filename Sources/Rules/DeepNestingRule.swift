@@ -2,30 +2,41 @@ import SwiftASTLint
 import SwiftSyntax
 
 struct DeepNestingArgs: Codable {
-    var maxDepth: Int = 3
-    enum CodingKeys: String, CodingKey {
-        case maxDepth = "max_depth"
-    }
+    /// Nesting depth at which a warning is emitted. Must be less than `error`.
+    var warning: Int = 3
+    /// Nesting depth at which an error is emitted.
+    var error: Int = 5
 }
 
-/// Emits an error when control flow nesting exceeds `maxDepth`.
+/// Emits a warning or error when control flow nesting exceeds a threshold.
 /// Counted constructs: if / guard / for / while / switch / do.
 /// Depth resets at function, initializer, accessor, and closure boundaries.
+///
+/// Configure via YAML:
+/// ```yaml
+/// rules:
+///   deep-nesting:
+///     args:
+///       warning: 3
+///       error: 5
+/// ```
 let deepNestingRule = ParameterizedRule(
     id: "deep-nesting",
     defaultArguments: DeepNestingArgs()
 ) { file, context, args in
-    let visitor = DeepNestingVisitor(maxDepth: args.maxDepth, context: context)
+    let visitor = DeepNestingVisitor(warningDepth: args.warning, errorDepth: args.error, context: context)
     visitor.walk(file)
 }
 
 private final class DeepNestingVisitor: SyntaxVisitor {
-    let maxDepth: Int
+    let warningDepth: Int
+    let errorDepth: Int
     let context: LintContext
     private var depth = 0
 
-    init(maxDepth: Int, context: LintContext) {
-        self.maxDepth = maxDepth
+    init(warningDepth: Int, errorDepth: Int, context: LintContext) {
+        self.warningDepth = warningDepth
+        self.errorDepth = errorDepth
         self.context = context
         super.init(viewMode: .sourceAccurate)
     }
@@ -124,11 +135,17 @@ private final class DeepNestingVisitor: SyntaxVisitor {
 
     private func incrementAndCheck(_ node: some SyntaxProtocol) {
         depth += 1
-        if depth >= maxDepth {
+        if depth >= errorDepth {
             context.report(
                 on: node,
-                message: "Nesting depth is \(depth) (max: \(maxDepth)). Extract into a separate function.",
+                message: "Nesting depth is \(depth) (error threshold: \(errorDepth)). Extract into a separate function.",
                 severity: .error
+            )
+        } else if depth >= warningDepth {
+            context.report(
+                on: node,
+                message: "Nesting depth is \(depth) (warning threshold: \(warningDepth)). Consider extracting into a separate function.",
+                severity: .warning
             )
         }
     }
