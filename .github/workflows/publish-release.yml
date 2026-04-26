@@ -1,0 +1,237 @@
+name: Publish Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g. 0.1.0)'
+        required: true
+        type: string
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  BINARY_NAME: swift-ast-lint
+
+permissions:
+  contents: write
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Validate version format
+        run: |
+          if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "error: version must be in semver format (e.g. 0.1.0)" >&2
+            exit 1
+          fi
+        env:
+          VERSION: ${{ inputs.version }}
+
+      - name: Check tag does not already exist
+        run: |
+          if git ls-remote --tags origin | grep -q "refs/tags/$VERSION$"; then
+            echo "error: tag $VERSION already exists" >&2
+            exit 1
+          fi
+        env:
+          VERSION: ${{ inputs.version }}
+
+  build-macos:
+    needs: preflight
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Select Xcode 26.2
+        run: sudo xcode-select --switch /Applications/Xcode_26.2.app/Contents/Developer
+
+      - name: Build Universal Binary
+        run: xcrun swift build -c release --arch arm64 --arch x86_64
+
+      - name: Create Archive
+        run: |
+          cd .build/apple/Products/Release
+          tar -czvf "${BINARY_NAME}-${VERSION}-darwin-universal.tar.gz" "${BINARY_NAME}"
+          shasum -a 256 "${BINARY_NAME}-${VERSION}-darwin-universal.tar.gz" > "${BINARY_NAME}-${VERSION}-darwin-universal.tar.gz.sha256"
+        env:
+          VERSION: ${{ inputs.version }}
+          BINARY_NAME: ${{ env.BINARY_NAME }}
+
+      - name: Upload release archive
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ env.BINARY_NAME }}-darwin-universal
+          path: |
+            .build/apple/Products/Release/${{ env.BINARY_NAME }}-${{ inputs.version }}-darwin-universal.tar.gz
+            .build/apple/Products/Release/${{ env.BINARY_NAME }}-${{ inputs.version }}-darwin-universal.tar.gz.sha256
+          if-no-files-found: error
+
+      - name: Upload binary for artifact bundle
+        uses: actions/upload-artifact@v6
+        with:
+          name: binary-macos
+          path: .build/apple/Products/Release/${{ env.BINARY_NAME }}
+          if-no-files-found: error
+
+  build-linux:
+    needs: preflight
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            arch: x86_64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Swift (setup-swift)
+        if: matrix.arch == 'x86_64'
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: '6.2'
+
+      - name: Install Swift (manual arm64)
+        if: matrix.arch == 'arm64'
+        run: |
+          sudo apt-get update && sudo apt-get install -y binutils gnupg2 libc6-dev libcurl4-openssl-dev \
+            libedit2 libgcc-13-dev libncurses-dev libpython3-dev libsqlite3-dev libstdc++-13-dev \
+            libxml2-dev libz3-dev pkg-config tzdata unzip zlib1g-dev
+          SWIFT_URL="https://download.swift.org/swift-6.2.1-release/ubuntu2404-aarch64/swift-6.2.1-RELEASE/swift-6.2.1-RELEASE-ubuntu24.04-aarch64.tar.gz"
+          curl -fsSL "$SWIFT_URL" -o /tmp/swift.tar.gz
+          sudo mkdir -p /opt/swift
+          sudo tar xzf /tmp/swift.tar.gz -C /opt/swift --strip-components=1
+          echo "/opt/swift/usr/bin" >> "$GITHUB_PATH"
+          rm /tmp/swift.tar.gz
+
+      - name: Install dependencies
+        if: matrix.arch == 'x86_64'
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+
+      - name: Build Linux Binary
+        run: swift build -c release --static-swift-stdlib
+
+      - name: Create Archive
+        run: |
+          cd .build/release
+          tar -czvf "${BINARY_NAME}-${VERSION}-linux-${ARCH}.tar.gz" "${BINARY_NAME}"
+          sha256sum "${BINARY_NAME}-${VERSION}-linux-${ARCH}.tar.gz" > "${BINARY_NAME}-${VERSION}-linux-${ARCH}.tar.gz.sha256"
+        env:
+          VERSION: ${{ inputs.version }}
+          ARCH: ${{ matrix.arch }}
+          BINARY_NAME: ${{ env.BINARY_NAME }}
+
+      - name: Upload release archive
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ env.BINARY_NAME }}-linux-${{ matrix.arch }}
+          path: |
+            .build/release/${{ env.BINARY_NAME }}-${{ inputs.version }}-linux-${{ matrix.arch }}.tar.gz
+            .build/release/${{ env.BINARY_NAME }}-${{ inputs.version }}-linux-${{ matrix.arch }}.tar.gz.sha256
+          if-no-files-found: error
+
+      - name: Upload binary for artifact bundle
+        uses: actions/upload-artifact@v6
+        with:
+          name: binary-linux-${{ matrix.arch }}
+          path: .build/release/${{ env.BINARY_NAME }}
+          if-no-files-found: error
+
+  create-release:
+    needs: [build-macos, build-linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download all release archives
+        uses: actions/download-artifact@v6
+        with:
+          pattern: ${{ env.BINARY_NAME }}-*
+          path: /tmp/release-assets
+          merge-multiple: true
+
+      - name: Download binaries for artifact bundle
+        uses: actions/download-artifact@v6
+        with:
+          name: binary-macos
+          path: /tmp/binaries/macos
+
+      - uses: actions/download-artifact@v6
+        with:
+          name: binary-linux-x86_64
+          path: /tmp/binaries/linux-x86_64
+
+      - uses: actions/download-artifact@v6
+        with:
+          name: binary-linux-arm64
+          path: /tmp/binaries/linux-arm64
+
+      - name: Create Artifact Bundle
+        run: |
+          BUNDLE="${BINARY_NAME}.artifactbundle"
+
+          mkdir -p "$BUNDLE/${BINARY_NAME}-macos/bin" \
+                   "$BUNDLE/${BINARY_NAME}-linux-x86_64/bin" \
+                   "$BUNDLE/${BINARY_NAME}-linux-arm64/bin"
+
+          cp /tmp/binaries/macos/"${BINARY_NAME}" "$BUNDLE/${BINARY_NAME}-macos/bin/${BINARY_NAME}"
+          cp /tmp/binaries/linux-x86_64/"${BINARY_NAME}" "$BUNDLE/${BINARY_NAME}-linux-x86_64/bin/${BINARY_NAME}"
+          cp /tmp/binaries/linux-arm64/"${BINARY_NAME}" "$BUNDLE/${BINARY_NAME}-linux-arm64/bin/${BINARY_NAME}"
+          chmod +x "$BUNDLE/${BINARY_NAME}-macos/bin/${BINARY_NAME}" \
+                   "$BUNDLE/${BINARY_NAME}-linux-x86_64/bin/${BINARY_NAME}" \
+                   "$BUNDLE/${BINARY_NAME}-linux-arm64/bin/${BINARY_NAME}"
+
+          cat > "$BUNDLE/info.json" << BUNDLE_JSON
+          {
+            "schemaVersion": "1.0",
+            "artifacts": {
+              "${BINARY_NAME}": {
+                "version": "${VERSION}",
+                "type": "executable",
+                "variants": [
+                  {
+                    "path": "${BINARY_NAME}-macos/bin/${BINARY_NAME}",
+                    "supportedTriples": ["x86_64-apple-macosx", "arm64-apple-macosx"]
+                  },
+                  {
+                    "path": "${BINARY_NAME}-linux-x86_64/bin/${BINARY_NAME}",
+                    "supportedTriples": ["x86_64-unknown-linux-gnu"]
+                  },
+                  {
+                    "path": "${BINARY_NAME}-linux-arm64/bin/${BINARY_NAME}",
+                    "supportedTriples": ["aarch64-unknown-linux-gnu"]
+                  }
+                ]
+              }
+            }
+          }
+          BUNDLE_JSON
+
+          zip -r "${BINARY_NAME}-${VERSION}.artifactbundle.zip" "$BUNDLE"
+          sha256sum "${BINARY_NAME}-${VERSION}.artifactbundle.zip" > "${BINARY_NAME}-${VERSION}.artifactbundle.zip.sha256"
+        env:
+          VERSION: ${{ inputs.version }}
+          BINARY_NAME: ${{ env.BINARY_NAME }}
+
+      - name: Tag and create GitHub Release
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "$VERSION"
+          git push origin "$VERSION"
+          gh release create "$VERSION" \
+            /tmp/release-assets/* \
+            "${BINARY_NAME}-${VERSION}.artifactbundle.zip" \
+            "${BINARY_NAME}-${VERSION}.artifactbundle.zip.sha256" \
+            --title "$VERSION" \
+            --generate-notes
+        env:
+          VERSION: ${{ inputs.version }}
+          BINARY_NAME: ${{ env.BINARY_NAME }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
