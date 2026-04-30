@@ -177,23 +177,40 @@ private final class PropertyDeclarationOrderingVisitor: SyntaxVisitor {
     }
 
     /// Returns `true` when all equal-key elements are contiguous (no interleaving).
+    /// Two-step check: wrapper names must already be contiguous, and within each
+    /// wrapper run the access levels must also be contiguous (no interleaving).
     private func isGrouped(_ keys: [PropertySortKey]) -> Bool {
         guard keys.count >= 2 else { return true }
         if !isFieldGrouped(keys.map(\.wrapperName)) { return false }
+        return accessLevelRunsAreGrouped(keys)
+    }
 
+    /// For each maximal run of identical wrapper names in `keys`, verifies that
+    /// the access levels within that run are themselves contiguous.
+    private func accessLevelRunsAreGrouped(_ keys: [PropertySortKey]) -> Bool {
+        for run in wrapperRuns(in: keys) where !isFieldGrouped(run) {
+            return false
+        }
+        return true
+    }
+
+    /// Splits `keys` into maximal consecutive runs where `wrapperName` is the
+    /// same, returning each run as the array of access levels in that run.
+    private func wrapperRuns(in keys: [PropertySortKey]) -> [[AccessLevel]] {
+        var runs: [[AccessLevel]] = []
         var currentWrapper = keys[0].wrapperName
         var currentLevels: [AccessLevel] = [keys[0].accessLevel]
-
         for i in 1 ..< keys.count {
             if keys[i].wrapperName == currentWrapper {
                 currentLevels.append(keys[i].accessLevel)
             } else {
-                if !isFieldGrouped(currentLevels) { return false }
+                runs.append(currentLevels)
                 currentWrapper = keys[i].wrapperName
                 currentLevels = [keys[i].accessLevel]
             }
         }
-        return isFieldGrouped(currentLevels)
+        runs.append(currentLevels)
+        return runs
     }
 
     private func isFieldGrouped<T: Hashable>(_ values: [T]) -> Bool {

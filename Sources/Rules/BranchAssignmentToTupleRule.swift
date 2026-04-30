@@ -218,11 +218,10 @@ private final class BranchAssignmentToTupleVisitor: SyntaxVisitor {
         var assigned: Set<String> = []
         for stmt in stmts {
             // In statement context, assignments appear as ExpressionStmtSyntax inside .stmt
-            let expression: ExprSyntax?
-            if let stmtSyntax = stmt.item.as(StmtSyntax.self) {
-                expression = stmtSyntax.as(ExpressionStmtSyntax.self)?.expression
+            let expression: ExprSyntax? = if let stmtSyntax = stmt.item.as(StmtSyntax.self) {
+                stmtSyntax.as(ExpressionStmtSyntax.self)?.expression
             } else {
-                expression = stmt.item.as(ExprSyntax.self)
+                stmt.item.as(ExprSyntax.self)
             }
             guard let expression, let lhsName = assignedName(from: expression)
             else { return false }
