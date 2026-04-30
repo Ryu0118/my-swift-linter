@@ -39,6 +39,8 @@ swift build -c release
 | `property-declaration-ordering` | warning | Properties must be grouped by property wrapper, then by access modifier |
 | `function-access-modifier-grouping` | warning | Functions must be grouped by access modifier (open → public → … → private) |
 | `swiftui-view-property` | error | `return` is forbidden in `some View` properties; `@ViewBuilder` is required when the body contains top-level `let`/`var`/`if`/`switch` |
+| `branch-assignment-to-tuple` | warning | Detects uninitialized `let` declarations followed by an `if`/`switch` that assigns every variable in every branch — collapse into an expression-form `let` |
+| `no-top-level-function` | error | Forbids file-scope `func` declarations regardless of access modifier — move helpers onto a type, into an extension, or inside a namespace `enum` |
 
 ### deep-nesting
 
@@ -176,6 +178,64 @@ private var content: some View {
 
 Fix-Its are provided: remove `return` for Pattern A, insert `@ViewBuilder` for Pattern B.
 
+### branch-assignment-to-tuple
+
+Detects the pattern of declaring one or more uninitialized `let` variables followed by an `if`/`switch` whose every branch only contains simple assignments to those variables. The whole block can be collapsed into an expression-form `let` binding (with a tuple when several variables are involved).
+
+```swift
+// ❌ warning — single variable
+let hoge: Int
+if let x {
+    hoge = x
+} else {
+    hoge = y
+}
+
+// ✅
+let hoge = if let x { x } else { y }
+
+// ❌ warning — multiple variables
+let days: Int
+let pages: Int
+if let duration {
+    days = duration.days
+    pages = duration.numPages
+} else {
+    days = period.days
+    pages = period.pages
+}
+
+// ✅
+let (days, pages) = if let duration {
+    (duration.days, duration.numPages)
+} else {
+    (period.days, period.pages)
+}
+```
+
+No Fix-It is provided because branch-level side effects may prevent a mechanical rewrite.
+
+### no-top-level-function
+
+Forbids file-scope (top-level) `func` declarations. Top-level functions hide ownership and become module-wide globals reachable from any file. Move helpers onto an existing type, into an `extension`, or wrap them in a namespace `enum`.
+
+```swift
+// ❌ error — top-level func, even private ones
+private func cacheKey(for id: String) -> String { ... }
+
+// ✅ — namespaced helper
+enum CacheKey {
+    static func make(for id: String) -> String { ... }
+}
+
+// ✅ — extension on the caller type
+extension UserRepository {
+    fileprivate func cacheKey(for id: String) -> String { ... }
+}
+```
+
+Functions inside a `struct`/`class`/`actor`/`enum`/`protocol`/`extension`, and nested functions inside another function body, are not flagged. No Fix-It is provided because choosing the right home is a judgement call.
+
 ## Usage
 
 ### Run the linter
@@ -198,14 +258,16 @@ Place a `.swift-ast-lint.yml` in the root of your project:
 rules:
   deep-nesting:
     args:
-      max_depth: 4
+      warning_depth: 3
+      error_depth: 5
     include:
       - "Sources/**"
     exclude:
       - "**/*Generated.swift"
   single-large-type-per-file:
     args:
-      min_lines: 100
+      warning_lines: 50
+      error_lines: 100
 ```
 
 ## Requirements
