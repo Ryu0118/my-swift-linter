@@ -9,4 +9,5 @@ public let rules = RuleSet {
     functionAccessModifierGroupingRule
     swiftUIViewPropertyRule
     branchAssignmentToTupleRule
+    noTopLevelFunctionRule
 }
