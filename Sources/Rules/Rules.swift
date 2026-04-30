@@ -10,4 +10,5 @@ public let rules = RuleSet {
     swiftUIViewPropertyRule
     branchAssignmentToTupleRule
     noTopLevelFunctionRule
+    returnIfExpressionRule
 }
