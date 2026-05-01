@@ -41,6 +41,9 @@ swift build -c release
 | `swiftui-view-property` | error | `return` is forbidden in `some View` properties; `@ViewBuilder` is required when the body contains top-level `let`/`var`/`if`/`switch` |
 | `branch-assignment-to-tuple` | warning | Detects uninitialized `let` declarations followed by an `if`/`switch` that assigns every variable in every branch — collapse into an expression-form `let` |
 | `no-top-level-function` | error | Forbids file-scope `func` declarations regardless of access modifier — move helpers onto a type, into an extension, or inside a namespace `enum` |
+| `return-if-expression` | warning | Detects multi-branch `if`/`else` blocks where every branch contains a single `return <expr>` — collapse into `return if { … } else { … }` |
+| `use-url-file-path` | warning | Flags deprecated `URL(fileURLWithPath:)` initializer — use `URL(filePath:)` (iOS 16+ / macOS 13+) instead |
+| `meaningful-suite-description` | error | Flags `@Suite` descriptions that are identical to the type name (or the name minus a `Tests`/`Test`/`Spec` suffix) — write a description that explains what the suite tests |
 
 ### deep-nesting
 
@@ -235,6 +238,74 @@ extension UserRepository {
 ```
 
 Functions inside a `struct`/`class`/`actor`/`enum`/`protocol`/`extension`, and nested functions inside another function body, are not flagged. No Fix-It is provided because choosing the right home is a judgement call.
+
+### return-if-expression
+
+Detects when consecutive `return` statements cover all branches of an `if`/`else-if*/else` chain and suggests collapsing them into a single `return if … { expr } else { expr }`.
+
+Triggers only when:
+- The chain terminates in a plain `else { … }` (not `else if`)
+- Every branch body contains exactly one `return <expr>` (non-bare `return`)
+
+```swift
+// ❌ warning
+func label(_ n: Int) -> String {
+    if n < 0 {
+        return "negative"
+    } else if n == 0 {
+        return "zero"
+    } else {
+        return "positive"
+    }
+}
+
+// ✅ (auto-fixed)
+func label(_ n: Int) -> String {
+    return if n < 0 { "negative" } else if n == 0 { "zero" } else { "positive" }
+}
+```
+
+A Fix-It is provided.
+
+### use-url-file-path
+
+`URL(fileURLWithPath:)` was deprecated in iOS 16 / macOS 13. Use the replacement initializer `URL(filePath:)` which accepts a `String`, `FilePath`, or other typed path.
+
+```swift
+// ❌ warning
+let url = URL(fileURLWithPath: path)
+let url = URL(fileURLWithPath: path, relativeTo: base)
+let url = .init(fileURLWithPath: path)
+
+// ✅
+let url = URL(filePath: path)
+```
+
+No Fix-It is provided because the replacement may require a `FilePath` import.
+
+### meaningful-suite-description
+
+`@Suite` accepts a description string to document what the test suite covers. Writing just the type name (or type name minus a `Tests`/`Test`/`Spec` suffix) adds no value over the default synthesised label.
+
+```swift
+// ❌ error — description is just the type name
+@Suite("CheckRunner")
+struct CheckRunnerTests { … }
+
+// ❌ error — exact match
+@Suite("MyFeature")
+struct MyFeature { … }
+
+// ✅ — describes what the suite verifies
+@Suite("meaningful-suite-description: detects @Suite descriptions that duplicate the type name")
+struct MeaningfulSuiteDescriptionRuleTests { … }
+
+// ✅ — trait-only, no description
+@Suite(.serialized)
+struct CheckRunnerTests { … }
+```
+
+Applies to `struct`, `class`, `actor`, and `extension`. No Fix-It is provided — choosing a meaningful description requires human judgement.
 
 ## Usage
 
