@@ -11,4 +11,5 @@ public let rules = RuleSet {
     branchAssignmentToTupleRule
     noTopLevelFunctionRule
     returnIfExpressionRule
+    useURLFilePathRule
 }
