@@ -12,4 +12,5 @@ public let rules = RuleSet {
     noTopLevelFunctionRule
     returnIfExpressionRule
     useURLFilePathRule
+    meaningfulSuiteDescriptionRule
 }
