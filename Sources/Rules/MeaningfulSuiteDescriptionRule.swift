@@ -102,13 +102,10 @@ private final class MeaningfulSuiteDescriptionVisitor: SyntaxVisitor {
             }
         }
 
+        let separators = [" \u{2014} ", " \u{2013} ", " - ", ": "]
         for candidate in candidates {
-            // Exact match
             if description == candidate { return true }
-            // "TypeName — …" / "TypeName – …" / "TypeName - …" / "TypeName: …"
-            for sep in [" \u{2014} ", " \u{2013} ", " - ", ": "] {
-                if description.hasPrefix(candidate + sep) { return true }
-            }
+            if separators.contains(where: { description.hasPrefix(candidate + $0) }) { return true }
         }
         return false
     }
