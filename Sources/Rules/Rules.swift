@@ -13,4 +13,5 @@ public let rules = RuleSet {
     returnIfExpressionRule
     useURLFilePathRule
     meaningfulSuiteDescriptionRule
+    testFunctionNamingRule
 }

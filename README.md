@@ -44,6 +44,7 @@ swift build -c release
 | `return-if-expression` | warning | Detects multi-branch `if`/`else` blocks where every branch contains a single `return <expr>` — collapse into `return if { … } else { … }` |
 | `use-url-file-path` | warning | Flags deprecated `URL(fileURLWithPath:)` initializer — use `URL(filePath:)` (iOS 16+ / macOS 13+) instead |
 | `meaningful-suite-description` | error | Flags `@Suite` descriptions that are identical to the type name (or the name minus a `Tests`/`Test`/`Spec` suffix) — write a description that explains what the suite tests |
+| `test-function-naming` | error | Flags `@Test` functions whose name is a backtick-quoted phrase — use lowerCamelCase and move the description into `@Test("…")` |
 
 ### deep-nesting
 
@@ -306,6 +307,26 @@ struct CheckRunnerTests { … }
 ```
 
 Applies to `struct`, `class`, `actor`, and `extension`. No Fix-It is provided — choosing a meaningful description requires human judgement.
+
+### test-function-naming
+
+`@Test` functions whose name is a backtick-quoted natural-language phrase add no value over a proper `@Test("…")` description string, and make it impossible to call the function directly. Use lowerCamelCase for the function name and put the human-readable description in the `@Test` label.
+
+```swift
+// ❌ error
+@Test
+func `claudeHookOutput blocks when outOfSync with default message`() {}
+
+// ❌ error — description present but name is still a quoted phrase
+@Test("claudeHookOutput blocks when outOfSync with default message")
+func `claudeHookOutput blocks when outOfSync with default message`() {}
+
+// ✅
+@Test("claudeHookOutput blocks when outOfSync with default message")
+func claudeHookOutputBlocksWhenOutOfSyncWithDefaultMessage() {}
+```
+
+Backtick-escaped Swift keywords with no spaces (e.g. `` func `default`() ``) are not flagged. No Fix-It is provided because choosing a camelCase name requires human judgement.
 
 ## Usage
 
