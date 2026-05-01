@@ -60,9 +60,15 @@ private final class UseURLFilePathVisitor: SyntaxVisitor {
             return ref.baseName.text == "URL"
         }
         if let memberAccess = node.calledExpression.as(MemberAccessExprSyntax.self),
-           memberAccess.declName.baseName.text == "init",
-           let base = memberAccess.base?.as(DeclReferenceExprSyntax.self) {
-            return base.baseName.text == "URL"
+           memberAccess.declName.baseName.text == "init" {
+            if let base = memberAccess.base?.as(DeclReferenceExprSyntax.self) {
+                return base.baseName.text == "URL"
+            }
+            // `.init(fileURLWithPath:)` with implicit base — no type info available,
+            // but this label is unique to URL's deprecated initializer so flag it.
+            if memberAccess.base == nil {
+                return true
+            }
         }
         return false
     }

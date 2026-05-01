@@ -42,6 +42,15 @@ struct UseURLFilePathRuleTests {
         #expect(diagnostics.count == 1)
     }
 
+    @Test("warning on implicit-base .init(fileURLWithPath:)")
+    func implicitBaseInitForm() async {
+        let source = """
+        let hoge: URL = .init(fileURLWithPath: "/tmp/file.txt")
+        """
+        let diagnostics = await rule.lint(source: source)
+        #expect(diagnostics.count == 1)
+    }
+
     @Test("warning on multiple occurrences")
     func multipleOccurrences() async {
         let source = """
