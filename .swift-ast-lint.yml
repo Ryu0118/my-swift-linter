@@ -2,3 +2,8 @@ included_paths:
   - "Sources/**/*.swift"
 excluded_paths:
   - ".build/**"
+
+rules:
+  missing-docs:
+    args:
+      min_access_level: package
