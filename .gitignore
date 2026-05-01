@@ -1,3 +1,5 @@
 .build/
 *.xcodeproj/
 .swiftpm/
+.nest/
+.docsync-cache/
