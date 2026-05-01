@@ -94,12 +94,20 @@ private final class MeaningfulSuiteDescriptionVisitor: SyntaxVisitor {
 
     /// Returns true when the description is trivially derived from the type name.
     private func isRedundant(description: String, typeName: String) -> Bool {
-        if description == typeName { return true }
-        // Strip common test-type suffixes and compare
+        // Collect the type name and its de-suffixed variants to check against
+        var candidates = [typeName]
         for suffix in ["Tests", "Test", "Spec"] {
             if typeName.hasSuffix(suffix) {
-                let stripped = String(typeName.dropLast(suffix.count))
-                if description == stripped { return true }
+                candidates.append(String(typeName.dropLast(suffix.count)))
+            }
+        }
+
+        for candidate in candidates {
+            // Exact match
+            if description == candidate { return true }
+            // "TypeName — …" / "TypeName – …" / "TypeName - …" / "TypeName: …"
+            for sep in [" \u{2014} ", " \u{2013} ", " - ", ": "] {
+                if description.hasPrefix(candidate + sep) { return true }
             }
         }
         return false
