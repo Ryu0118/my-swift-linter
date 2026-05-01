@@ -110,6 +110,67 @@ struct MeaningfulSuiteDescriptionRuleTests {
         #expect(diagnostics.count == 2)
     }
 
+    // MARK: - Type-prefix dash/colon patterns (violations)
+
+    @Test("error when description is TypeName — anything (em-dash prefix)")
+    func emDashPrefix() async {
+        let source = """
+        import Testing
+        @Suite("UpdateRunner — recomputes checksums and writes them back")
+        struct UpdateRunnerTests {}
+        """
+        let diagnostics = await rule.lint(source: source)
+        #expect(diagnostics.count == 1)
+        #expect(diagnostics[0].severity == .error)
+    }
+
+    @Test("error when description is TypeName – anything (en-dash prefix)")
+    func enDashPrefix() async {
+        let source = """
+        import Testing
+        @Suite("ConfigLoader – parses YAML")
+        struct ConfigLoaderTests {}
+        """
+        let diagnostics = await rule.lint(source: source)
+        #expect(diagnostics.count == 1)
+        #expect(diagnostics[0].severity == .error)
+    }
+
+    @Test("error when description is TypeName - anything (hyphen prefix)")
+    func hyphenDashPrefix() async {
+        let source = """
+        import Testing
+        @Suite("Parser - handles edge cases")
+        struct ParserTests {}
+        """
+        let diagnostics = await rule.lint(source: source)
+        #expect(diagnostics.count == 1)
+        #expect(diagnostics[0].severity == .error)
+    }
+
+    @Test("error when description is TypeName: anything (colon prefix)")
+    func colonPrefix() async {
+        let source = """
+        import Testing
+        @Suite("DocSyncConfig: Codable round-trip and decoding edge cases")
+        struct DocSyncConfigTests {}
+        """
+        let diagnostics = await rule.lint(source: source)
+        #expect(diagnostics.count == 1)
+        #expect(diagnostics[0].severity == .error)
+    }
+
+    @Test("error when description prefix is stripped type name with Tests suffix")
+    func strippedTestsSuffixWithDash() async {
+        let source = """
+        import Testing
+        @Suite("CheckRunner — validates sequential execution order")
+        struct CheckRunnerTests {}
+        """
+        let diagnostics = await rule.lint(source: source)
+        #expect(diagnostics.count == 1)
+    }
+
     // MARK: - No violations (must NOT fire)
 
     @Test("no error when description follows rule-id: what it checks pattern")
@@ -165,11 +226,11 @@ struct MeaningfulSuiteDescriptionRuleTests {
         #expect(diagnostics.isEmpty)
     }
 
-    @Test("no error when description starts with struct name but is longer")
-    func descriptionStartsWithButLonger() async {
+    @Test("no error when description prefix is an unrelated word that happens to match type name length")
+    func unrelatedPrefixSameLength() async {
         let source = """
         import Testing
-        @Suite("CheckRunner: validates sequential execution order")
+        @Suite("Validates ordering of items in a sequential list")
         struct CheckRunnerTests {}
         """
         let diagnostics = await rule.lint(source: source)
