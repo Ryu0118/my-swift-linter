@@ -12,8 +12,15 @@ import SwiftSyntax
 /// **Does NOT trigger when:**
 /// - The function name is a backtick-escaped Swift keyword (no spaces, e.g. `` `default` ``)
 /// - The function has no `@Test` attribute
-let testFunctionNamingRule = Rule(id: "test-function-naming") { file, context in
-    let visitor = TestFunctionNamingVisitor(context: context)
+struct TestFunctionNamingArgs: Codable {
+    var severity: Severity = .error
+}
+
+let testFunctionNamingRule = ParameterizedRule(
+    id: "test-function-naming",
+    defaultArguments: TestFunctionNamingArgs(),
+) { file, context, args in
+    let visitor = TestFunctionNamingVisitor(context: context, severity: args.severity)
     visitor.walk(file)
 }
 
@@ -21,9 +28,11 @@ let testFunctionNamingRule = Rule(id: "test-function-naming") { file, context in
 
 private final class TestFunctionNamingVisitor: SyntaxVisitor {
     let context: LintContext
+    let severity: Severity
 
-    init(context: LintContext) {
+    init(context: LintContext, severity: Severity) {
         self.context = context
+        self.severity = severity
         super.init(viewMode: .sourceAccurate)
     }
 
@@ -38,7 +47,7 @@ private final class TestFunctionNamingVisitor: SyntaxVisitor {
             @Test function name "\(rawName)" uses a backtick-quoted phrase. \
             Use lowerCamelCase and move the description into @Test("…") instead.
             """,
-            severity: .error
+            severity: severity,
         )
         return .visitChildren
     }

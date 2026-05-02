@@ -14,8 +14,15 @@ import SwiftSyntax
 /// - `@Suite` has no string argument (trait-only usage)
 /// - The description string contains interpolation
 /// - The description is a meaningful sentence different from the type name
-let meaningfulSuiteDescriptionRule = Rule(id: "meaningful-suite-description") { file, context in
-    let visitor = MeaningfulSuiteDescriptionVisitor(context: context)
+struct MeaningfulSuiteDescriptionArgs: Codable {
+    var severity: Severity = .error
+}
+
+let meaningfulSuiteDescriptionRule = ParameterizedRule(
+    id: "meaningful-suite-description",
+    defaultArguments: MeaningfulSuiteDescriptionArgs(),
+) { file, context, args in
+    let visitor = MeaningfulSuiteDescriptionVisitor(context: context, severity: args.severity)
     visitor.walk(file)
 }
 
@@ -23,9 +30,11 @@ let meaningfulSuiteDescriptionRule = Rule(id: "meaningful-suite-description") { 
 
 private final class MeaningfulSuiteDescriptionVisitor: SyntaxVisitor {
     let context: LintContext
+    let severity: Severity
 
-    init(context: LintContext) {
+    init(context: LintContext, severity: Severity) {
         self.context = context
+        self.severity = severity
         super.init(viewMode: .sourceAccurate)
     }
 
@@ -55,7 +64,7 @@ private final class MeaningfulSuiteDescriptionVisitor: SyntaxVisitor {
     private func checkSuiteAttribute(
         in attributes: AttributeListSyntax,
         typeName: String,
-        reportNode: Syntax
+        reportNode: Syntax,
     ) {
         for attribute in attributes {
             guard case let .attribute(attr) = attribute else { continue }
@@ -71,7 +80,7 @@ private final class MeaningfulSuiteDescriptionVisitor: SyntaxVisitor {
                 @Suite description "\(description)" is identical to the type name and provides no value. \
                 Describe what this suite tests instead, e.g. "@Suite(\\"meaningful-suite-description: detects …\\")".
                 """,
-                severity: .error
+                severity: severity,
             )
         }
     }
@@ -85,7 +94,8 @@ private final class MeaningfulSuiteDescriptionVisitor: SyntaxVisitor {
             // Only handle single-segment plain strings — skip interpolated ones
             let segments = stringLit.segments
             guard segments.count == 1,
-                  case let .stringSegment(seg) = segments.first!
+                  let first = segments.first,
+                  case let .stringSegment(seg) = first
             else { return nil }
             return seg.content.text
         }

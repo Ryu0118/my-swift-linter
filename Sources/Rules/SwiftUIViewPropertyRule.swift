@@ -24,16 +24,25 @@ import SwiftSyntax
 ///
 /// **Exception**: `var body: some View` is excluded because `View.body` already has
 /// an implicit `@ViewBuilder` from the protocol requirement.
-let swiftUIViewPropertyRule = Rule(id: "swiftui-view-property") { file, context in
-    let visitor = SwiftUIViewPropertyVisitor(context: context)
+struct SwiftUIViewPropertyArgs: Codable {
+    var severity: Severity = .error
+}
+
+let swiftUIViewPropertyRule = ParameterizedRule(
+    id: "swiftui-view-property",
+    defaultArguments: SwiftUIViewPropertyArgs(),
+) { file, context, args in
+    let visitor = SwiftUIViewPropertyVisitor(context: context, severity: args.severity)
     visitor.walk(file)
 }
 
 private final class SwiftUIViewPropertyVisitor: SyntaxVisitor {
     let context: LintContext
+    let severity: Severity
 
-    init(context: LintContext) {
+    init(context: LintContext, severity: Severity) {
         self.context = context
+        self.severity = severity
         super.init(viewMode: .sourceAccurate)
     }
 
@@ -73,14 +82,14 @@ private final class SwiftUIViewPropertyVisitor: SyntaxVisitor {
                 on: returnStmt,
                 message: "Do not use `return` in a `some View` computed property. "
                     + "If you need top-level `let`/`var`, `if`, or `switch`, add `@ViewBuilder`.",
-                severity: .error,
+                severity: severity,
                 fixIts: [
                     FixIt.replace(
                         message: SimpleFixItMessage("Remove `return`"),
                         oldNode: returnKeyword,
-                        newNode: returnKeyword.with(\.tokenKind, .identifier("")).with(\.trailingTrivia, [])
+                        newNode: returnKeyword.with(\.tokenKind, .identifier("")).with(\.trailingTrivia, []),
                     ),
-                ]
+                ],
             )
         }
     }
@@ -95,23 +104,23 @@ private final class SwiftUIViewPropertyVisitor: SyntaxVisitor {
             on: node,
             message: "Add `@ViewBuilder` when a `some View` computed property uses "
                 + "`let`/`var`, `if`, or `switch` at the top level. `return` is then unnecessary.",
-            severity: .error,
+            severity: severity,
             fixIts: [
                 FixIt.replace(
                     message: SimpleFixItMessage("Add `@ViewBuilder`"),
                     oldNode: varKeyword,
                     newNode: varKeyword.with(
                         \.leadingTrivia,
-                        varKeyword.leadingTrivia + [.unexpectedText("@ViewBuilder ")]
-                    )
+                        varKeyword.leadingTrivia + [.unexpectedText("@ViewBuilder ")],
+                    ),
                 ),
-            ]
+            ],
         )
     }
 
     private func checkViewBuilderRequiredForFunction(
         for node: FunctionDeclSyntax,
-        statements: CodeBlockItemListSyntax
+        statements: CodeBlockItemListSyntax,
     ) {
         guard needsViewBuilder(statements) else { return }
 
@@ -120,17 +129,17 @@ private final class SwiftUIViewPropertyVisitor: SyntaxVisitor {
             on: node,
             message: "Add `@ViewBuilder` when a `some View` function uses "
                 + "`let`/`var`, `if`, or `switch` at the top level. `return` is then unnecessary.",
-            severity: .error,
+            severity: severity,
             fixIts: [
                 FixIt.replace(
                     message: SimpleFixItMessage("Add `@ViewBuilder`"),
                     oldNode: funcKeyword,
                     newNode: funcKeyword.with(
                         \.leadingTrivia,
-                        funcKeyword.leadingTrivia + [.unexpectedText("@ViewBuilder ")]
-                    )
+                        funcKeyword.leadingTrivia + [.unexpectedText("@ViewBuilder ")],
+                    ),
                 ),
-            ]
+            ],
         )
     }
 
@@ -158,7 +167,7 @@ private final class SwiftUIViewPropertyVisitor: SyntaxVisitor {
             if pattern.identifier.text == "body" { return false }
             guard let typeAnnotation = binding.typeAnnotation else { continue }
             let typeText = typeAnnotation.type.description.trimmingCharacters(in: .whitespaces)
-            if typeText.hasPrefix("some ") && typeText.contains("View") {
+            if typeText.hasPrefix("some "), typeText.contains("View") {
                 return true
             }
         }
@@ -174,7 +183,7 @@ private final class SwiftUIViewPropertyVisitor: SyntaxVisitor {
                 return CodeBlockSyntax(
                     leftBrace: accessor.leftBrace,
                     statements: stmts,
-                    rightBrace: accessor.rightBrace
+                    rightBrace: accessor.rightBrace,
                 )
             }
         }

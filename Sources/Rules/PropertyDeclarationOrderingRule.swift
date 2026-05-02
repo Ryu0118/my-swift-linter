@@ -12,8 +12,15 @@ import SwiftSyntax
 /// Relative declaration order within the same group is preserved (stable sort).
 /// `var body` is always placed first among computed properties.
 /// A Fix-It is provided to reorder automatically.
-let propertyDeclarationOrderingRule = Rule(id: "property-declaration-ordering") { file, context in
-    let visitor = PropertyDeclarationOrderingVisitor(context: context)
+struct PropertyDeclarationOrderingArgs: Codable {
+    var severity: Severity = .warning
+}
+
+let propertyDeclarationOrderingRule = ParameterizedRule(
+    id: "property-declaration-ordering",
+    defaultArguments: PropertyDeclarationOrderingArgs(),
+) { file, context, args in
+    let visitor = PropertyDeclarationOrderingVisitor(context: context, severity: args.severity)
     visitor.walk(file)
 }
 
@@ -56,9 +63,11 @@ private enum AccessLevel: Int, Comparable {
 
 private final class PropertyDeclarationOrderingVisitor: SyntaxVisitor {
     let context: LintContext
+    let severity: Severity
 
-    init(context: LintContext) {
+    init(context: LintContext, severity: Severity) {
         self.context = context
+        self.severity = severity
         super.init(viewMode: .sourceAccurate)
     }
 
@@ -100,7 +109,7 @@ private final class PropertyDeclarationOrderingVisitor: SyntaxVisitor {
         let sorted = buildSortedMembersWithStoredFirst(
             members: members,
             storedIndices: storedIndices,
-            computedIndices: computedIndices
+            computedIndices: computedIndices,
         )
         let newBlock = memberBlock.with(\.members, MemberBlockItemListSyntax(sorted))
 
@@ -108,19 +117,19 @@ private final class PropertyDeclarationOrderingVisitor: SyntaxVisitor {
             on: typeNode,
             message: "Properties should be grouped by wrapper, then access modifier."
                 + " Stored before computed. var body must be first computed property.",
-            severity: .warning,
+            severity: severity,
             fixIts: [
                 FixIt(
                     message: SimpleFixItMessage("Reorder: stored → body → other computed"),
-                    changes: [.replace(oldNode: Syntax(memberBlock), newNode: Syntax(newBlock))]
+                    changes: [.replace(oldNode: Syntax(memberBlock), newNode: Syntax(newBlock))],
                 ),
-            ]
+            ],
         )
     }
 
     /// Classifies member declarations into stored and computed property index lists.
     private func classifyProperties(
-        _ members: [MemberBlockItemSyntax]
+        _ members: [MemberBlockItemSyntax],
     ) -> (stored: [Int], computed: [Int]) {
         var stored: [Int] = []
         var computed: [Int] = []
@@ -142,7 +151,7 @@ private final class PropertyDeclarationOrderingVisitor: SyntaxVisitor {
     private func hasViolation(
         members: [MemberBlockItemSyntax],
         stored: [Int],
-        computed: [Int]
+        computed: [Int],
     ) -> Bool {
         let hasEnough = stored.count >= 2
             || (!stored.isEmpty && !computed.isEmpty)
@@ -168,7 +177,7 @@ private final class PropertyDeclarationOrderingVisitor: SyntaxVisitor {
 
     private func hasBodyOrderViolation(
         members: [MemberBlockItemSyntax],
-        computedIndices: [Int]
+        computedIndices: [Int],
     ) -> Bool {
         guard computedIndices.count >= 2 else { return false }
         guard let bodyIndex = computedIndices.first(where: { isBodyProperty(members[$0].decl) })
@@ -230,7 +239,7 @@ private final class PropertyDeclarationOrderingVisitor: SyntaxVisitor {
     private func buildSortedMembersWithStoredFirst(
         members: [MemberBlockItemSyntax],
         storedIndices: [Int],
-        computedIndices: [Int]
+        computedIndices: [Int],
     ) -> [MemberBlockItemSyntax] {
         let sortedStored = storedIndices
             .map { (index: $0, member: members[$0], key: propertySortKey(of: members[$0].decl)) }
@@ -279,7 +288,7 @@ private final class PropertyDeclarationOrderingVisitor: SyntaxVisitor {
     /// Places `var body` first; preserves relative order of remaining computed properties.
     private func sortComputedBodyFirst(
         members: [MemberBlockItemSyntax],
-        computedIndices: [Int]
+        computedIndices: [Int],
     ) -> [MemberBlockItemSyntax] {
         guard let bodyIdx = computedIndices.first(where: { isBodyProperty(members[$0].decl) })
         else {

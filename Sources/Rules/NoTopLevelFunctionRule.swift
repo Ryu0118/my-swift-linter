@@ -25,14 +25,21 @@ import SwiftSyntax
 ///     static func cacheKey() -> String { } // namespaced static
 /// }
 /// ```
-let noTopLevelFunctionRule = Rule(id: "no-top-level-function") { file, context in
+struct NoTopLevelFunctionArgs: Codable {
+    var severity: Severity = .error
+}
+
+let noTopLevelFunctionRule = ParameterizedRule(
+    id: "no-top-level-function",
+    defaultArguments: NoTopLevelFunctionArgs(),
+) { file, context, args in
     for statement in file.statements {
         guard let funcDecl = statement.item.as(FunctionDeclSyntax.self) else { continue }
         context.report(
             on: funcDecl.name,
             message: "Top-level function '\(funcDecl.name.text)' is not allowed. " +
                 "Move it onto a type/extension or wrap it in a namespace enum.",
-            severity: .error
+            severity: args.severity,
         )
     }
 }

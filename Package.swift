@@ -6,7 +6,7 @@ let package = Package(
     name: "my-swift-linter",
     platforms: [.macOS(.v15)],
     dependencies: [
-        .package(url: "https://github.com/Ryu0118/swift-ast-lint.git", from: "0.1.2"),
+        .package(url: "https://github.com/Ryu0118/swift-ast-lint.git", from: "0.2.0"),
         .package(url: "https://github.com/swiftlang/swift-syntax.git", "600.0.0" ..< "700.0.0"),
     ],
     targets: [
@@ -16,11 +16,11 @@ let package = Package(
         ]),
         .executableTarget(
             name: "my-swift-linter",
-            dependencies: ["Rules"]
+            dependencies: ["Rules"],
         ),
         .testTarget(
             name: "RulesTests",
-            dependencies: ["Rules", .product(name: "SwiftASTLintTestSupport", package: "swift-ast-lint")]
+            dependencies: ["Rules", .product(name: "SwiftASTLintTestSupport", package: "swift-ast-lint")],
         ),
-    ]
+    ],
 )

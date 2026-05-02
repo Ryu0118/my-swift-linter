@@ -32,19 +32,20 @@ swift build -c release
 
 ## Rules
 
-| Rule ID | Severity | Description |
-|---------|----------|-------------|
-| `deep-nesting` | warning / error | Flags control flow nesting — warning at depth ≥ `warning_depth` (default: 3), error at depth ≥ `error_depth` (default: 5) |
-| `single-large-type-per-file` | warning / error | Flags files with two or more large public/package types — warning at ≥ `warning_lines` lines (default: 50), error at ≥ `error_lines` lines (default: 100) |
-| `property-declaration-ordering` | warning | Properties must be grouped by property wrapper, then by access modifier |
-| `function-access-modifier-grouping` | warning | Functions must be grouped by access modifier (open → public → … → private) |
-| `swiftui-view-property` | error | `return` is forbidden in `some View` properties; `@ViewBuilder` is required when the body contains top-level `let`/`var`/`if`/`switch` |
-| `branch-assignment-to-tuple` | warning | Detects uninitialized `let` declarations followed by an `if`/`switch` that assigns every variable in every branch — collapse into an expression-form `let` |
-| `no-top-level-function` | error | Forbids file-scope `func` declarations regardless of access modifier — move helpers onto a type, into an extension, or inside a namespace `enum` |
-| `return-if-expression` | warning | Detects multi-branch `if`/`else` blocks where every branch contains a single `return <expr>` — collapse into `return if { … } else { … }` |
-| `use-url-file-path` | warning | Flags deprecated `URL(fileURLWithPath:)` initializer — use `URL(filePath:)` (iOS 16+ / macOS 13+) instead |
-| `meaningful-suite-description` | error | Flags `@Suite` descriptions that are identical to the type name (or the name minus a `Tests`/`Test`/`Spec` suffix) — write a description that explains what the suite tests |
-| `test-function-naming` | error | Flags `@Test` functions whose name is a backtick-quoted phrase — use lowerCamelCase and move the description into `@Test("…")` |
+| Rule ID | Default Severity | Configurable | Description |
+|---------|-----------------|:------------:|-------------|
+| `deep-nesting` | warning / error | ✓ | Flags control flow nesting — warning at depth ≥ `warning_depth` (default: 3), error at depth ≥ `error_depth` (default: 5) |
+| `single-large-type-per-file` | warning / error | ✓ | Flags files with two or more large public/package types — warning at ≥ `warning_lines` lines (default: 50), error at ≥ `error_lines` lines (default: 100) |
+| `property-declaration-ordering` | warning | ✓ | Properties must be grouped by property wrapper, then by access modifier |
+| `function-access-modifier-grouping` | warning | ✓ | Functions must be grouped by access modifier (open → public → … → private) |
+| `swiftui-view-property` | error | ✓ | `return` is forbidden in `some View` properties; `@ViewBuilder` is required when the body contains top-level `let`/`var`/`if`/`switch` |
+| `branch-assignment-to-tuple` | warning | ✓ | Detects uninitialized `let` declarations followed by an `if`/`switch` that assigns every variable in every branch — collapse into an expression-form `let` |
+| `no-top-level-function` | error | ✓ | Forbids file-scope `func` declarations regardless of access modifier — move helpers onto a type, into an extension, or inside a namespace `enum` |
+| `return-if-expression` | warning | ✓ | Detects multi-branch `if`/`else` blocks where every branch contains a single `return <expr>` — collapse into `return if { … } else { … }` |
+| `use-url-file-path` | warning | ✓ | Flags deprecated `URL(fileURLWithPath:)` initializer — use `URL(filePath:)` (iOS 16+ / macOS 13+) instead |
+| `missing-docs` | warning | ✓ | Flags declarations missing a doc comment — configurable minimum access level |
+| `meaningful-suite-description` | error | ✓ | Flags `@Suite` descriptions that are identical to the type name (or the name minus a `Tests`/`Test`/`Spec` suffix) — write a description that explains what the suite tests |
+| `test-function-naming` | error | ✓ | Flags `@Test` functions whose name is a backtick-quoted phrase — use lowerCamelCase and move the description into `@Test("…")` |
 
 ### deep-nesting
 
@@ -108,6 +109,15 @@ rules:
 
 Properties within a type must be sorted first by property wrapper (alphabetically, unwrapped properties last), then by access modifier within each wrapper group.
 
+**Configuration**
+
+```yaml
+rules:
+  property-declaration-ordering:
+    args:
+      severity: error   # default: warning
+```
+
 ```swift
 // ❌ warning
 struct MyView: View {
@@ -129,6 +139,15 @@ A Fix-It is provided to reorder automatically.
 ### function-access-modifier-grouping
 
 Function declarations within a type must be grouped in descending access order: `open → public → package → internal → fileprivate → private`. `init`, `deinit`, and `subscript` are excluded.
+
+**Configuration**
+
+```yaml
+rules:
+  function-access-modifier-grouping:
+    args:
+      severity: error   # default: warning
+```
 
 ```swift
 // ❌ warning
@@ -182,6 +201,15 @@ private var content: some View {
 
 Fix-Its are provided: remove `return` for Pattern A, insert `@ViewBuilder` for Pattern B.
 
+**Configuration**
+
+```yaml
+rules:
+  swiftui-view-property:
+    args:
+      severity: warning   # default: error
+```
+
 ### branch-assignment-to-tuple
 
 Detects the pattern of declaring one or more uninitialized `let` variables followed by an `if`/`switch` whose every branch only contains simple assignments to those variables. The whole block can be collapsed into an expression-form `let` binding (with a tuple when several variables are involved).
@@ -219,6 +247,15 @@ let (days, pages) = if let duration {
 
 No Fix-It is provided because branch-level side effects may prevent a mechanical rewrite.
 
+**Configuration**
+
+```yaml
+rules:
+  branch-assignment-to-tuple:
+    args:
+      severity: error   # default: warning
+```
+
 ### no-top-level-function
 
 Forbids file-scope (top-level) `func` declarations. Top-level functions hide ownership and become module-wide globals reachable from any file. Move helpers onto an existing type, into an `extension`, or wrap them in a namespace `enum`.
@@ -239,6 +276,15 @@ extension UserRepository {
 ```
 
 Functions inside a `struct`/`class`/`actor`/`enum`/`protocol`/`extension`, and nested functions inside another function body, are not flagged. No Fix-It is provided because choosing the right home is a judgement call.
+
+**Configuration**
+
+```yaml
+rules:
+  no-top-level-function:
+    args:
+      severity: warning   # default: error
+```
 
 ### return-if-expression
 
@@ -268,6 +314,15 @@ func label(_ n: Int) -> String {
 
 A Fix-It is provided.
 
+**Configuration**
+
+```yaml
+rules:
+  return-if-expression:
+    args:
+      severity: error   # default: warning
+```
+
 ### use-url-file-path
 
 `URL(fileURLWithPath:)` was deprecated in iOS 16 / macOS 13. Use the replacement initializer `URL(filePath:)` which accepts a `String`, `FilePath`, or other typed path.
@@ -283,6 +338,15 @@ let url = URL(filePath: path)
 ```
 
 No Fix-It is provided because the replacement may require a `FilePath` import.
+
+**Configuration**
+
+```yaml
+rules:
+  use-url-file-path:
+    args:
+      severity: error   # default: warning
+```
 
 ### meaningful-suite-description
 
@@ -308,6 +372,15 @@ struct CheckRunnerTests { … }
 
 Applies to `struct`, `class`, `actor`, and `extension`. No Fix-It is provided — choosing a meaningful description requires human judgement.
 
+**Configuration**
+
+```yaml
+rules:
+  meaningful-suite-description:
+    args:
+      severity: warning   # default: error
+```
+
 ### test-function-naming
 
 `@Test` functions whose name is a backtick-quoted natural-language phrase add no value over a proper `@Test("…")` description string, and make it impossible to call the function directly. Use lowerCamelCase for the function name and put the human-readable description in the `@Test` label.
@@ -327,6 +400,45 @@ func claudeHookOutputBlocksWhenOutOfSyncWithDefaultMessage() {}
 ```
 
 Backtick-escaped Swift keywords with no spaces (e.g. `` func `default`() ``) are not flagged. No Fix-It is provided because choosing a camelCase name requires human judgement.
+
+**Configuration**
+
+```yaml
+rules:
+  test-function-naming:
+    args:
+      severity: warning   # default: error
+```
+
+### missing-docs
+
+Flags declarations with explicit access level at or above `min_access_level` that are missing a doc comment (`///` or `/** */`).
+
+Applies to: `struct`, `class`, `actor`, `enum`, `protocol`, `typealias`, `func`, `init`, `subscript`, and `var`/`let` declarations.
+
+```swift
+// ❌ warning (default min_access_level: package)
+public struct NetworkClient {
+    public func fetch() {}
+}
+
+// ✅
+/// Handles HTTP network requests.
+public struct NetworkClient {
+    /// Fetches data from the given URL.
+    public func fetch() {}
+}
+```
+
+**Configuration**
+
+```yaml
+rules:
+  missing-docs:
+    args:
+      min_access_level: public   # default: package
+      severity: error            # default: warning
+```
 
 ## Usage
 
