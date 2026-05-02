@@ -1,0 +1,16 @@
+rules:
+- name: readme-rules
+  sources:
+  - Sources/Rules/*Rule.swift
+  - Sources/Rules/Rules.swift
+  doc: README.md
+  message: "A rule implementation changed \u2014 update README if the rule ID, severity,
+    configuration keys, or code examples changed."
+  checksum: a9f45d2ad72723b92bb1aaaf2887b0f6a0dbc0b5dd0ea6f17be1111a031abddb
+- name: readme-cli
+  sources:
+  - Sources/my-swift-linter/main.swift
+  doc: README.md
+  message: "CLI entry point changed \u2014 update README if installation or usage
+    instructions changed."
+  checksum: 4668dd95ad8575489f272464a68148cf1367911c814a85822c2ef8686d91bf10
