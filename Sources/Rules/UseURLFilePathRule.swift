@@ -60,7 +60,8 @@ private final class UseURLFilePathVisitor: SyntaxVisitor {
             return ref.baseName.text == "URL"
         }
         if let memberAccess = node.calledExpression.as(MemberAccessExprSyntax.self),
-           memberAccess.declName.baseName.text == "init" {
+           memberAccess.declName.baseName.text == "init"
+        {
             if let base = memberAccess.base?.as(DeclReferenceExprSyntax.self) {
                 return base.baseName.text == "URL"
             }
@@ -87,7 +88,7 @@ private final class UseURLFilePathVisitor: SyntaxVisitor {
 
     // MARK: - Fix-it construction
 
-    private func buildFixed(node: FunctionCallExprSyntax, firstLabel: String) -> FunctionCallExprSyntax? {
+    private func buildFixed(node: FunctionCallExprSyntax, firstLabel _: String) -> FunctionCallExprSyntax? {
         var newArgs = Array(node.arguments)
         guard !newArgs.isEmpty else { return nil }
 

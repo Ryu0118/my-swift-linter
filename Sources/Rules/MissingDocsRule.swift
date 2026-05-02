@@ -3,7 +3,7 @@ import SwiftSyntax
 
 // MARK: - Args
 
-struct MissingDocsArgs: Codable, Sendable {
+struct MissingDocsArgs: Codable {
     /// Minimum access level that requires a doc comment.
     /// Valid values: "open", "public", "package", "internal", "fileprivate", "private"
     var minAccessLevel: String = "package"
@@ -15,7 +15,10 @@ struct MissingDocsArgs: Codable, Sendable {
 
 // MARK: - Rule
 
-let missingDocsRule = ParameterizedRule(id: "missing-docs", defaultArguments: MissingDocsArgs()) { file, context, args in
+let missingDocsRule = ParameterizedRule(
+    id: "missing-docs",
+    defaultArguments: MissingDocsArgs()
+) { file, context, args in
     let threshold = AccessLevel(rawValue: args.minAccessLevel) ?? .public
     let visitor = MissingDocsVisitor(context: context, threshold: threshold)
     visitor.walk(file)
@@ -24,21 +27,21 @@ let missingDocsRule = ParameterizedRule(id: "missing-docs", defaultArguments: Mi
 // MARK: - Access level
 
 private enum AccessLevel: String, Comparable {
-    case `private`      = "private"
-    case `fileprivate`  = "fileprivate"
-    case `internal`     = "internal"
-    case package        = "package"
-    case `public`       = "public"
-    case open           = "open"
+    case `private`
+    case `fileprivate`
+    case `internal`
+    case package
+    case `public`
+    case open
 
     private var rank: Int {
         switch self {
-        case .private:      return 0
-        case .fileprivate:  return 1
-        case .internal:     return 2
-        case .package:      return 3
-        case .public:       return 4
-        case .open:         return 5
+        case .private: return 0
+        case .fileprivate: return 1
+        case .internal: return 2
+        case .package: return 3
+        case .public: return 4
+        case .open: return 5
         }
     }
 
@@ -139,12 +142,12 @@ private final class MissingDocsVisitor: SyntaxVisitor {
     private func explicitAccessLevel(from modifiers: DeclModifierListSyntax) -> AccessLevel? {
         for modifier in modifiers {
             switch modifier.name.tokenKind {
-            case .keyword(.open):        return .open
-            case .keyword(.public):      return .public
-            case .keyword(.package):     return .package
-            case .keyword(.internal):    return .internal
+            case .keyword(.open): return .open
+            case .keyword(.public): return .public
+            case .keyword(.package): return .package
+            case .keyword(.internal): return .internal
             case .keyword(.fileprivate): return .fileprivate
-            case .keyword(.private):     return .private
+            case .keyword(.private): return .private
             default: continue
             }
         }

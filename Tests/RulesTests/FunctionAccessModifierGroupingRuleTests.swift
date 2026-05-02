@@ -3,7 +3,6 @@ import SwiftASTLint
 import SwiftASTLintTestSupport
 import Testing
 
-@Suite("function-access-modifier-grouping: detects ungrouped function access modifiers")
 struct FunctionAccessModifierGroupingRuleTests {
     private let rule: any RuleProtocol
 

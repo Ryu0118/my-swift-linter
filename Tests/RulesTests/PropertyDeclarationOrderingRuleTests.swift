@@ -3,7 +3,6 @@ import SwiftASTLint
 import SwiftASTLintTestSupport
 import Testing
 
-@Suite("property-declaration-ordering: detects ungrouped property wrappers and access modifiers")
 struct PropertyDeclarationOrderingRuleTests {
     private let rule: any RuleProtocol
 

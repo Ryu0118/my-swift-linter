@@ -3,7 +3,6 @@ import SwiftASTLint
 import SwiftASTLintTestSupport
 import Testing
 
-@Suite("use-url-file-path: detects deprecated URL(fileURLWithPath:) initializer calls")
 struct UseURLFilePathRuleTests {
     private let rule: any RuleProtocol
 

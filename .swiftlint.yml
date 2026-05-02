@@ -1,2 +1,11 @@
 excluded:
   - Tests
+  - .build
+  - my-new-linter
+
+trailing_comma:
+  mandatory_comma: true
+
+opening_brace:
+  ignore_multiline_function_signatures: true
+  ignore_multiline_statement_conditions: true

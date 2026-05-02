@@ -143,13 +143,15 @@ private final class DeepNestingVisitor: SyntaxVisitor {
         if depth >= errorDepth {
             context.report(
                 on: node,
-                message: "Nesting depth is \(depth) (error threshold: \(errorDepth)). Extract into a separate function.",
+                message: "Nesting depth is \(depth) (error threshold: \(errorDepth))."
+                    + " Extract into a separate function.",
                 severity: .error
             )
         } else if depth >= warningDepth {
             context.report(
                 on: node,
-                message: "Nesting depth is \(depth) (warning threshold: \(warningDepth)). Consider extracting into a separate function.",
+                message: "Nesting depth is \(depth) (warning threshold: \(warningDepth))."
+                    + " Consider extracting into a separate function.",
                 severity: .warning
             )
         }

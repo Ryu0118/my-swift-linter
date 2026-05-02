@@ -39,7 +39,9 @@ let singleLargeTypePerFileRule = ParameterizedRule(
         let threshold = info.lineCount >= args.errorLines ? args.errorLines : args.warningLines
         context.report(
             on: info.node,
-            message: "\(info.name) is \(info.lineCount) lines. Only one large (>= \(threshold) lines) public/package type per file is allowed. Split into separate files.",
+            message: "\(info.name) is \(info.lineCount) lines."
+                + " Only one large (>= \(threshold) lines) public/package type per file is allowed."
+                + " Split into separate files.",
             severity: severity
         )
     }
@@ -70,7 +72,9 @@ private final class LargeTypeCollector: SyntaxVisitor {
         return .visitChildren
     }
 
-    override func visitPost(_: StructDeclSyntax) { nestingLevel -= 1 }
+    override func visitPost(_: StructDeclSyntax) {
+        nestingLevel -= 1
+    }
 
     override func visit(_ node: ClassDeclSyntax) -> SyntaxVisitorContinueKind {
         checkType(name: node.name.text, modifiers: node.modifiers, syntax: Syntax(node))
@@ -78,7 +82,9 @@ private final class LargeTypeCollector: SyntaxVisitor {
         return .visitChildren
     }
 
-    override func visitPost(_: ClassDeclSyntax) { nestingLevel -= 1 }
+    override func visitPost(_: ClassDeclSyntax) {
+        nestingLevel -= 1
+    }
 
     override func visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
         checkType(name: node.name.text, modifiers: node.modifiers, syntax: Syntax(node))
@@ -86,7 +92,9 @@ private final class LargeTypeCollector: SyntaxVisitor {
         return .visitChildren
     }
 
-    override func visitPost(_: EnumDeclSyntax) { nestingLevel -= 1 }
+    override func visitPost(_: EnumDeclSyntax) {
+        nestingLevel -= 1
+    }
 
     override func visit(_ node: ActorDeclSyntax) -> SyntaxVisitorContinueKind {
         checkType(name: node.name.text, modifiers: node.modifiers, syntax: Syntax(node))
@@ -94,7 +102,9 @@ private final class LargeTypeCollector: SyntaxVisitor {
         return .visitChildren
     }
 
-    override func visitPost(_: ActorDeclSyntax) { nestingLevel -= 1 }
+    override func visitPost(_: ActorDeclSyntax) {
+        nestingLevel -= 1
+    }
 
     // MARK: - Helper
 

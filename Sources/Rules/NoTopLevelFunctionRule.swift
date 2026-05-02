@@ -32,7 +32,7 @@ let noTopLevelFunctionRule = Rule(id: "no-top-level-function") { file, context i
             on: funcDecl.name,
             message: "Top-level function '\(funcDecl.name.text)' is not allowed. " +
                 "Move it onto a type/extension or wrap it in a namespace enum.",
-            severity: .error,
+            severity: .error
         )
     }
 }

@@ -3,7 +3,6 @@ import SwiftASTLint
 import SwiftASTLintTestSupport
 import Testing
 
-@Suite("meaningful-suite-description: detects @Suite descriptions that duplicate the type name")
 struct MeaningfulSuiteDescriptionRuleTests {
     private let rule: any RuleProtocol
 

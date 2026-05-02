@@ -43,9 +43,9 @@ private final class ReturnIfExpressionVisitor: SyntaxVisitor {
         return .visitChildren
     }
 
-    // implicit getter (computed property without explicit `get`) uses AccessorBlockSyntax directly
+    /// implicit getter (computed property without explicit `get`) uses AccessorBlockSyntax directly
     override func visit(_ node: AccessorBlockSyntax) -> SyntaxVisitorContinueKind {
-        if case .getter(let stmts) = node.accessors {
+        if case let .getter(stmts) = node.accessors {
             check(statements: stmts)
         }
         return .visitChildren
@@ -106,9 +106,9 @@ private final class ReturnIfExpressionVisitor: SyntaxVisitor {
     private func elseChainQualifies(_ elseBody: IfExprSyntax.ElseBody?) -> Bool {
         guard let elseBody else { return false }
         switch elseBody {
-        case .codeBlock(let block):
+        case let .codeBlock(block):
             return isSingleReturnBranch(block.statements)
-        case .ifExpr(let nestedIf):
+        case let .ifExpr(nestedIf):
             guard isSingleReturnBranch(nestedIf.body.statements) else { return false }
             return elseChainQualifies(nestedIf.elseBody)
         }
@@ -145,9 +145,9 @@ private final class ReturnIfExpressionVisitor: SyntaxVisitor {
         let strippedBody = stripReturnFromBlock(node.body)
         let strippedElse: IfExprSyntax.ElseBody? = node.elseBody.map { elseBody in
             switch elseBody {
-            case .codeBlock(let block):
+            case let .codeBlock(block):
                 return .codeBlock(stripReturnFromBlock(block))
-            case .ifExpr(let nested):
+            case let .ifExpr(nested):
                 return .ifExpr(stripReturnsFromBranches(nested))
             }
         }

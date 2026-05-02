@@ -3,7 +3,6 @@ import SwiftASTLint
 import SwiftASTLintTestSupport
 import Testing
 
-@Suite("test-function-naming: detects @Test functions using backtick-quoted names instead of lowerCamelCase with a description argument")
 struct TestFunctionNamingRuleTests {
     private let rule: any RuleProtocol
 

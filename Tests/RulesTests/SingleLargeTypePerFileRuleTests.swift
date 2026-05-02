@@ -3,7 +3,6 @@ import SwiftASTLint
 import SwiftASTLintTestSupport
 import Testing
 
-@Suite("single-large-type-per-file: detects multiple large public/package types in one file")
 struct SingleLargeTypePerFileRuleTests {
     private let rule: any RuleProtocol
 
@@ -15,19 +14,25 @@ struct SingleLargeTypePerFileRuleTests {
 
     private func publicStruct(name: String, lines: Int) -> String {
         var result = "public struct \(name) {\n"
-        for i in 0 ..< (lines - 2) { result += "    let prop\(i) = \(i)\n" }
+        for i in 0 ..< (lines - 2) {
+            result += "    let prop\(i) = \(i)\n"
+        }
         return result + "}"
     }
 
     private func packageStruct(name: String, lines: Int) -> String {
         var result = "package struct \(name) {\n"
-        for i in 0 ..< (lines - 2) { result += "    let prop\(i) = \(i)\n" }
+        for i in 0 ..< (lines - 2) {
+            result += "    let prop\(i) = \(i)\n"
+        }
         return result + "}"
     }
 
     private func internalStruct(name: String, lines: Int) -> String {
         var result = "struct \(name) {\n"
-        for i in 0 ..< (lines - 2) { result += "    let prop\(i) = \(i)\n" }
+        for i in 0 ..< (lines - 2) {
+            result += "    let prop\(i) = \(i)\n"
+        }
         return result + "}"
     }
 
@@ -97,7 +102,9 @@ struct SingleLargeTypePerFileRuleTests {
     func nestedTypes() async {
         var source = "public struct Outer {\n"
         source += publicStruct(name: "Inner", lines: 50)
-        for i in 0 ..< 50 { source += "    let outerProp\(i) = \(i)\n" }
+        for i in 0 ..< 50 {
+            source += "    let outerProp\(i) = \(i)\n"
+        }
         source += "}"
         let diagnostics = await rule.lint(source: source)
         #expect(diagnostics.isEmpty)
@@ -114,7 +121,9 @@ struct SingleLargeTypePerFileRuleTests {
     func allTypeKinds(keyword: String, kind: String) async {
         func largeType(name: String) -> String {
             var result = "\(keyword) \(name) {\n"
-            for i in 0 ..< 50 { result += "    let prop\(i) = \(i)\n" }
+            for i in 0 ..< 50 {
+                result += "    let prop\(i) = \(i)\n"
+            }
             return result + "}"
         }
         let source = largeType(name: "TypeA") + "\n" + largeType(name: "TypeB")
