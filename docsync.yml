@@ -1,0 +1,27 @@
+rules:
+- name: readme-rules
+  sources:
+  - Sources/Rules/DeepNestingRule.swift
+  - Sources/Rules/SingleLargeTypePerFileRule.swift
+  - Sources/Rules/PropertyDeclarationOrderingRule.swift
+  - Sources/Rules/FunctionAccessModifierGroupingRule.swift
+  - Sources/Rules/SwiftUIViewPropertyRule.swift
+  - Sources/Rules/BranchAssignmentToTupleRule.swift
+  - Sources/Rules/NoTopLevelFunctionRule.swift
+  - Sources/Rules/ReturnIfExpressionRule.swift
+  - Sources/Rules/UseURLFilePathRule.swift
+  - Sources/Rules/MissingDocsRule.swift
+  - Sources/Rules/MeaningfulSuiteDescriptionRule.swift
+  - Sources/Rules/TestFunctionNamingRule.swift
+  - Sources/Rules/Rules.swift
+  doc: README.md
+  message: "A rule implementation changed \u2014 update README if the rule ID, severity,
+    configuration keys, or code examples changed."
+  checksum: e20806c03c35bb21bef0f7bc08472c4c863cf743246494862f403e7e55966d74
+- name: readme-cli
+  sources:
+  - Sources/my-swift-linter/main.swift
+  doc: README.md
+  message: "CLI entry point changed \u2014 update README if installation or usage
+    instructions changed."
+  checksum: 0225102e620692ffc53cb57abe226686e86d5e82be71a4627f6b692dad079919
