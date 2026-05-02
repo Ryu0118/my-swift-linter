@@ -123,8 +123,8 @@ private final class FunctionAccessGroupingVisitor: SyntaxVisitor {
             .map(\.member)
 
         var result = members
-        for (i, originalIndex) in funcIndices.enumerated() {
-            result[originalIndex] = sortedFuncs[i]
+        for (idx, originalIndex) in funcIndices.enumerated() {
+            result[originalIndex] = sortedFuncs[idx]
         }
         return result
     }

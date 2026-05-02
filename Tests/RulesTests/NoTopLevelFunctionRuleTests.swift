@@ -3,7 +3,6 @@ import SwiftASTLint
 import SwiftASTLintTestSupport
 import Testing
 
-@Suite("no-top-level-function: forbids file-scope func declarations")
 struct NoTopLevelFunctionRuleTests {
     private let rule: any RuleProtocol
 

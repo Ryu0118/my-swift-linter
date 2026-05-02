@@ -3,7 +3,6 @@ import SwiftASTLint
 import SwiftASTLintTestSupport
 import Testing
 
-@Suite("missing-docs: detects declarations above a configured access level that lack doc comments")
 struct MissingDocsRuleTests {
     private let rule: any RuleProtocol
 

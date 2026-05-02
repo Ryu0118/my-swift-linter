@@ -3,7 +3,6 @@ import SwiftASTLint
 import SwiftASTLintTestSupport
 import Testing
 
-@Suite("deep-nesting: detects control flow nested beyond warning/error thresholds")
 struct DeepNestingRuleTests {
     private let rule: any RuleProtocol
 

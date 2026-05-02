@@ -47,7 +47,7 @@ private final class TestFunctionNamingVisitor: SyntaxVisitor {
 
     private func hasTestAttribute(_ attributes: AttributeListSyntax) -> Bool {
         attributes.contains { element in
-            guard case .attribute(let attr) = element else { return false }
+            guard case let .attribute(attr) = element else { return false }
             guard let name = attr.attributeName.as(IdentifierTypeSyntax.self) else { return false }
             return name.name.text == "Test"
         }

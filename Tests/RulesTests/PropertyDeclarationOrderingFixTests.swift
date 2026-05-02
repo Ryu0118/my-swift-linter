@@ -3,7 +3,6 @@ import SwiftASTLint
 import SwiftASTLintTestSupport
 import Testing
 
-@Suite("property-declaration-ordering: Fix-It and computed property ordering")
 struct PropertyDeclarationOrderingFixTests {
     private let rule: any RuleProtocol
 

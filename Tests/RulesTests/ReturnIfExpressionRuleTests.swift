@@ -3,7 +3,6 @@ import SwiftASTLint
 import SwiftASTLintTestSupport
 import Testing
 
-@Suite("return-if-expression: detects multi-branch returns collapsible into return if expression")
 struct ReturnIfExpressionRuleTests {
     private let rule: any RuleProtocol
 
@@ -309,5 +308,4 @@ struct ReturnIfExpressionRuleTests {
         let diagnostics = await rule.lint(source: source)
         #expect(diagnostics.count == 2)
     }
-
 }

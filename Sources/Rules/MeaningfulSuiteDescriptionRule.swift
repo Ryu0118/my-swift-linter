@@ -58,7 +58,7 @@ private final class MeaningfulSuiteDescriptionVisitor: SyntaxVisitor {
         reportNode: Syntax
     ) {
         for attribute in attributes {
-            guard case .attribute(let attr) = attribute else { continue }
+            guard case let .attribute(attr) = attribute else { continue }
             guard let name = attr.attributeName.as(IdentifierTypeSyntax.self),
                   name.name.text == "Suite"
             else { continue }
@@ -79,13 +79,13 @@ private final class MeaningfulSuiteDescriptionVisitor: SyntaxVisitor {
     /// Returns the plain string value if the first string-literal argument has no interpolation,
     /// otherwise returns `nil`.
     private func extractStringLiteral(from attribute: AttributeSyntax) -> String? {
-        guard case .argumentList(let args) = attribute.arguments else { return nil }
+        guard case let .argumentList(args) = attribute.arguments else { return nil }
         for arg in args {
             guard let stringLit = arg.expression.as(StringLiteralExprSyntax.self) else { continue }
             // Only handle single-segment plain strings — skip interpolated ones
             let segments = stringLit.segments
             guard segments.count == 1,
-                  case .stringSegment(let seg) = segments.first!
+                  case let .stringSegment(seg) = segments.first!
             else { return nil }
             return seg.content.text
         }
@@ -96,10 +96,8 @@ private final class MeaningfulSuiteDescriptionVisitor: SyntaxVisitor {
     private func isRedundant(description: String, typeName: String) -> Bool {
         // Collect the type name and its de-suffixed variants to check against
         var candidates = [typeName]
-        for suffix in ["Tests", "Test", "Spec"] {
-            if typeName.hasSuffix(suffix) {
-                candidates.append(String(typeName.dropLast(suffix.count)))
-            }
+        for suffix in ["Tests", "Test", "Spec"] where typeName.hasSuffix(suffix) {
+            candidates.append(String(typeName.dropLast(suffix.count)))
         }
 
         let separators = [" \u{2014} ", " \u{2013} ", " - ", ": "]

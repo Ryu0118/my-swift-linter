@@ -200,13 +200,13 @@ private final class PropertyDeclarationOrderingVisitor: SyntaxVisitor {
         var runs: [[AccessLevel]] = []
         var currentWrapper = keys[0].wrapperName
         var currentLevels: [AccessLevel] = [keys[0].accessLevel]
-        for i in 1 ..< keys.count {
-            if keys[i].wrapperName == currentWrapper {
-                currentLevels.append(keys[i].accessLevel)
+        for idx in 1 ..< keys.count {
+            if keys[idx].wrapperName == currentWrapper {
+                currentLevels.append(keys[idx].accessLevel)
             } else {
                 runs.append(currentLevels)
-                currentWrapper = keys[i].wrapperName
-                currentLevels = [keys[i].accessLevel]
+                currentWrapper = keys[idx].wrapperName
+                currentLevels = [keys[idx].accessLevel]
             }
         }
         runs.append(currentLevels)
@@ -243,8 +243,8 @@ private final class PropertyDeclarationOrderingVisitor: SyntaxVisitor {
         let reordered = sortedStored + computedMembers
 
         var result = members
-        for (i, originalIndex) in allPropertyIndices.enumerated() {
-            result[originalIndex] = reordered[i]
+        for (idx, originalIndex) in allPropertyIndices.enumerated() {
+            result[originalIndex] = reordered[idx]
         }
         return result
     }

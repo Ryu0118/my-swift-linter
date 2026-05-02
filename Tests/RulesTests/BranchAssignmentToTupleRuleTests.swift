@@ -3,7 +3,6 @@ import SwiftASTLint
 import SwiftASTLintTestSupport
 import Testing
 
-@Suite("branch-assignment-to-tuple: detects let declarations followed by branch assignment")
 struct BranchAssignmentToTupleRuleTests {
     private let rule: any RuleProtocol
 

@@ -3,7 +3,6 @@ import SwiftASTLint
 import SwiftASTLintTestSupport
 import Testing
 
-@Suite("swiftui-view-property: detects return and missing @ViewBuilder in some View computed properties and functions")
 struct SwiftUIViewPropertyRuleTests {
     private let rule: any RuleProtocol
 
