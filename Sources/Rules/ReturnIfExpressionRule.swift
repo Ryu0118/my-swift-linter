@@ -18,8 +18,15 @@ import SwiftSyntax
 /// - The `if` is already the RHS of a `return` statement.
 ///
 /// **Auto-fix:** Rewrites to `return if ... { <expr> } else if ... { <expr> } else { <expr> }`.
-let returnIfExpressionRule = Rule(id: "return-if-expression") { file, context in
-    let visitor = ReturnIfExpressionVisitor(context: context)
+struct ReturnIfExpressionArgs: Codable {
+    var severity: Severity = .warning
+}
+
+let returnIfExpressionRule = ParameterizedRule(
+    id: "return-if-expression",
+    defaultArguments: ReturnIfExpressionArgs(),
+) { file, context, args in
+    let visitor = ReturnIfExpressionVisitor(context: context, severity: args.severity)
     visitor.walk(file)
 }
 
@@ -27,9 +34,11 @@ let returnIfExpressionRule = Rule(id: "return-if-expression") { file, context in
 
 private final class ReturnIfExpressionVisitor: SyntaxVisitor {
     let context: LintContext
+    let severity: Severity
 
-    init(context: LintContext) {
+    init(context: LintContext, severity: Severity) {
         self.context = context
+        self.severity = severity
         super.init(viewMode: .sourceAccurate)
     }
 
@@ -65,16 +74,16 @@ private final class ReturnIfExpressionVisitor: SyntaxVisitor {
             context.reportWithFix(
                 on: item,
                 message: "Collapse multi-branch returns into `return if { … } else { … }`.",
-                severity: .warning,
+                severity: severity,
                 fixIts: [
                     FixIt.replace(
                         message: SimpleFixItMessage(
-                            "Replace with `return if … { expr } else { expr }`"
+                            "Replace with `return if … { expr } else { expr }`",
                         ),
                         oldNode: item,
-                        newNode: fixedItem
+                        newNode: fixedItem,
                     ),
-                ]
+                ],
             )
         }
     }
@@ -136,7 +145,7 @@ private final class ReturnIfExpressionVisitor: SyntaxVisitor {
             .with(\.trailingTrivia, [])
         return ReturnStmtSyntax(
             returnKeyword: returnKeyword,
-            expression: ExprSyntax(rewritten)
+            expression: ExprSyntax(rewritten),
         )
     }
 
@@ -146,9 +155,9 @@ private final class ReturnIfExpressionVisitor: SyntaxVisitor {
         let strippedElse: IfExprSyntax.ElseBody? = node.elseBody.map { elseBody in
             switch elseBody {
             case let .codeBlock(block):
-                return .codeBlock(stripReturnFromBlock(block))
+                .codeBlock(stripReturnFromBlock(block))
             case let .ifExpr(nested):
-                return .ifExpr(stripReturnsFromBranches(nested))
+                .ifExpr(stripReturnsFromBranches(nested))
             }
         }
         return node

@@ -42,8 +42,15 @@ import SwiftSyntax
 /// 4. Every declared variable is assigned in every branch.
 ///
 /// Fix-It is intentionally omitted; branch-level side-effects may prevent a mechanical rewrite.
-let branchAssignmentToTupleRule = Rule(id: "branch-assignment-to-tuple") { file, context in
-    let visitor = BranchAssignmentToTupleVisitor(context: context)
+struct BranchAssignmentToTupleArgs: Codable {
+    var severity: Severity = .warning
+}
+
+let branchAssignmentToTupleRule = ParameterizedRule(
+    id: "branch-assignment-to-tuple",
+    defaultArguments: BranchAssignmentToTupleArgs(),
+) { file, context, args in
+    let visitor = BranchAssignmentToTupleVisitor(context: context, severity: args.severity)
     visitor.walk(file)
 }
 
@@ -51,9 +58,11 @@ let branchAssignmentToTupleRule = Rule(id: "branch-assignment-to-tuple") { file,
 
 private final class BranchAssignmentToTupleVisitor: SyntaxVisitor {
     let context: LintContext
+    let severity: Severity
 
-    init(context: LintContext) {
+    init(context: LintContext, severity: Severity) {
         self.context = context
+        self.severity = severity
         super.init(viewMode: .sourceAccurate)
     }
 
@@ -95,7 +104,7 @@ private final class BranchAssignmentToTupleVisitor: SyntaxVisitor {
                 items: items,
                 runStart: runStart,
                 nameSet: Set(declaredNames),
-                followingItem: items[index]
+                followingItem: items[index],
             )
         }
     }
@@ -112,15 +121,14 @@ private final class BranchAssignmentToTupleVisitor: SyntaxVisitor {
         items: [CodeBlockItemSyntax],
         runStart: Int,
         nameSet: Set<String>,
-        followingItem: CodeBlockItemSyntax
+        followingItem: CodeBlockItemSyntax,
     ) {
-        let matches: Bool
-        if let ifNode = ifExpr(from: followingItem), isIfElse(ifNode) {
-            matches = allBranchesAssignOnly(nameSet, inIf: ifNode)
+        let matches: Bool = if let ifNode = ifExpr(from: followingItem), isIfElse(ifNode) {
+            allBranchesAssignOnly(nameSet, inIf: ifNode)
         } else if let switchNode = switchStmt(from: followingItem) {
-            matches = allCasesAssignOnly(nameSet, inSwitch: switchNode)
+            allCasesAssignOnly(nameSet, inSwitch: switchNode)
         } else {
-            matches = false
+            false
         }
         guard matches else { return }
         context.report(
@@ -128,7 +136,7 @@ private final class BranchAssignmentToTupleVisitor: SyntaxVisitor {
             message: "Collapse `let` declarations and branch assignment into a single "
                 + "`let x = if ... { ... } else { ... }` binding. "
                 + "For multiple variables use `let (a, b) = if ... { (x, y) } else { (p, q) }`.",
-            severity: .warning
+            severity: severity,
         )
     }
 

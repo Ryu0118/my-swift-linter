@@ -2,10 +2,17 @@ import SwiftASTLint
 import SwiftDiagnostics
 import SwiftSyntax
 
-/// Detects calls to `URL(fileURLWithPath:)` and `URL(fileURLWithPath:isDirectory:)`,
-/// which are deprecated in favor of `URL(filePath:)` and `URL(filePath:directoryHint:)`.
-let useURLFilePathRule = Rule(id: "use-url-file-path") { file, context in
-    let visitor = UseURLFilePathVisitor(context: context)
+/// Detects deprecated URL initializers that use `fileURLWithPath` labels
+/// and suggests migrating to `URL(filePath:)` / `URL(filePath:directoryHint:)`.
+struct UseURLFilePathArgs: Codable {
+    var severity: Severity = .warning
+}
+
+let useURLFilePathRule = ParameterizedRule(
+    id: "use-url-file-path",
+    defaultArguments: UseURLFilePathArgs(),
+) { file, context, args in
+    let visitor = UseURLFilePathVisitor(context: context, severity: args.severity)
     visitor.walk(file)
 }
 
@@ -13,9 +20,11 @@ let useURLFilePathRule = Rule(id: "use-url-file-path") { file, context in
 
 private final class UseURLFilePathVisitor: SyntaxVisitor {
     let context: LintContext
+    let severity: Severity
 
-    init(context: LintContext) {
+    init(context: LintContext, severity: Severity) {
         self.context = context
+        self.severity = severity
         super.init(viewMode: .sourceAccurate)
     }
 
@@ -33,20 +42,20 @@ private final class UseURLFilePathVisitor: SyntaxVisitor {
             context.reportWithFix(
                 on: node,
                 message: "Deprecated `URL(\(deprecatedLabel):)` initializer.\(hint)",
-                severity: .warning,
+                severity: severity,
                 fixIts: [
                     FixIt.replace(
                         message: SimpleFixItMessage("Replace with `URL(\(replacement):)`"),
                         oldNode: node,
-                        newNode: fixed
+                        newNode: fixed,
                     ),
-                ]
+                ],
             )
         } else {
             context.report(
                 on: node,
                 message: "Deprecated `URL(\(deprecatedLabel):)` initializer.\(hint)",
-                severity: .warning
+                severity: severity,
             )
         }
 

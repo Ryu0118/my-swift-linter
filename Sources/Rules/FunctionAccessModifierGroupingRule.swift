@@ -9,10 +9,15 @@ import SwiftSyntax
 /// Relative declaration order within the same access level is preserved (stable sort).
 /// A Fix-It is provided to reorder automatically.
 /// init / deinit / subscript are excluded; only regular `func` declarations are checked.
-let functionAccessModifierGroupingRule = Rule(
-    id: "function-access-modifier-grouping"
-) { file, context in
-    let visitor = FunctionAccessGroupingVisitor(context: context)
+struct FunctionAccessModifierGroupingArgs: Codable {
+    var severity: Severity = .warning
+}
+
+let functionAccessModifierGroupingRule = ParameterizedRule(
+    id: "function-access-modifier-grouping",
+    defaultArguments: FunctionAccessModifierGroupingArgs(),
+) { file, context, args in
+    let visitor = FunctionAccessGroupingVisitor(context: context, severity: args.severity)
     visitor.walk(file)
 }
 
@@ -35,9 +40,11 @@ private enum FuncAccessLevel: Int, Comparable {
 
 private final class FunctionAccessGroupingVisitor: SyntaxVisitor {
     let context: LintContext
+    let severity: Severity
 
-    init(context: LintContext) {
+    init(context: LintContext, severity: Severity) {
         self.context = context
+        self.severity = severity
         super.init(viewMode: .sourceAccurate)
     }
 
@@ -70,7 +77,7 @@ private final class FunctionAccessGroupingVisitor: SyntaxVisitor {
 
     private func checkMemberBlock(
         _ memberBlock: MemberBlockSyntax,
-        reportOn typeNode: Syntax
+        reportOn typeNode: Syntax,
     ) {
         let members = Array(memberBlock.members)
         let funcIndices = members.indices.filter { members[$0].decl.as(FunctionDeclSyntax.self) != nil }
@@ -86,13 +93,13 @@ private final class FunctionAccessGroupingVisitor: SyntaxVisitor {
             on: typeNode,
             message: "Functions should be grouped by access modifier"
                 + " (open → public → package → internal → fileprivate → private).",
-            severity: .warning,
+            severity: severity,
             fixIts: [
                 FixIt(
                     message: SimpleFixItMessage("Group functions by access modifier"),
-                    changes: [.replace(oldNode: Syntax(memberBlock), newNode: Syntax(newBlock))]
+                    changes: [.replace(oldNode: Syntax(memberBlock), newNode: Syntax(newBlock))],
                 ),
-            ]
+            ],
         )
     }
 
@@ -115,7 +122,7 @@ private final class FunctionAccessGroupingVisitor: SyntaxVisitor {
     /// Stable-sorts function declarations by access level, preserving non-function member positions.
     private func buildSorted(
         members: [MemberBlockItemSyntax],
-        funcIndices: [Int]
+        funcIndices: [Int],
     ) -> [MemberBlockItemSyntax] {
         let sortedFuncs = funcIndices
             .map { (index: $0, member: members[$0], level: accessLevel(of: members[$0].decl)) }

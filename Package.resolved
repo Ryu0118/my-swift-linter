@@ -1,5 +1,5 @@
 {
-  "originHash" : "549922ee141512b3488f843c991e3b5566a04fd034d44b64632bcbc79d9f9bb0",
+  "originHash" : "ad8c950d1831c0a76612217404c00650f0b1a76c69683a627fbfce4b1b875cdb",
   "pins" : [
     {
       "identity" : "filemanagerprotocol",
@@ -20,12 +20,21 @@
       }
     },
     {
+      "identity" : "swift-asn1",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-asn1.git",
+      "state" : {
+        "revision" : "eb50cbd14606a9161cbc5d452f18797c90ef0bab",
+        "version" : "1.7.0"
+      }
+    },
+    {
       "identity" : "swift-ast-lint",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Ryu0118/swift-ast-lint.git",
       "state" : {
-        "revision" : "375692a3765aa4e166df846f1f2721ec10b79f74",
-        "version" : "0.1.2"
+        "revision" : "32d0ce8022b8a5f433cec67bd90e11d8f860e976",
+        "version" : "0.2.0"
       }
     },
     {
@@ -35,6 +44,15 @@
       "state" : {
         "revision" : "5ee33ce3b4e59e6aa9b1dfe95f1623bd142efa7b",
         "version" : "0.5.0"
+      }
+    },
+    {
+      "identity" : "swift-crypto",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-crypto.git",
+      "state" : {
+        "revision" : "1b6b2e274e85105bfa155183145a1dcfd63331f1",
+        "version" : "4.5.0"
       }
     },
     {

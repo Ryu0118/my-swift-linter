@@ -7,9 +7,22 @@ struct MissingDocsArgs: Codable {
     /// Minimum access level that requires a doc comment.
     /// Valid values: "open", "public", "package", "internal", "fileprivate", "private"
     var minAccessLevel: String = "package"
+    var severity: Severity = .warning
 
     enum CodingKeys: String, CodingKey {
         case minAccessLevel = "min_access_level"
+        case severity
+    }
+
+    init(minAccessLevel: String = "package", severity: Severity = .warning) {
+        self.minAccessLevel = minAccessLevel
+        self.severity = severity
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        minAccessLevel = try container.decodeIfPresent(String.self, forKey: .minAccessLevel) ?? "package"
+        severity = try container.decodeIfPresent(Severity.self, forKey: .severity) ?? .warning
     }
 }
 
@@ -17,10 +30,10 @@ struct MissingDocsArgs: Codable {
 
 let missingDocsRule = ParameterizedRule(
     id: "missing-docs",
-    defaultArguments: MissingDocsArgs()
+    defaultArguments: MissingDocsArgs(),
 ) { file, context, args in
     let threshold = AccessLevel(rawValue: args.minAccessLevel) ?? .public
-    let visitor = MissingDocsVisitor(context: context, threshold: threshold)
+    let visitor = MissingDocsVisitor(context: context, threshold: threshold, severity: args.severity)
     visitor.walk(file)
 }
 
@@ -36,12 +49,12 @@ private enum AccessLevel: String, Comparable {
 
     private var rank: Int {
         switch self {
-        case .private: return 0
-        case .fileprivate: return 1
-        case .internal: return 2
-        case .package: return 3
-        case .public: return 4
-        case .open: return 5
+        case .private: 0
+        case .fileprivate: 1
+        case .internal: 2
+        case .package: 3
+        case .public: 4
+        case .open: 5
         }
     }
 
@@ -55,10 +68,12 @@ private enum AccessLevel: String, Comparable {
 private final class MissingDocsVisitor: SyntaxVisitor {
     let context: LintContext
     let threshold: AccessLevel
+    let severity: Severity
 
-    init(context: LintContext, threshold: AccessLevel) {
+    init(context: LintContext, threshold: AccessLevel, severity: Severity) {
         self.context = context
         self.threshold = threshold
+        self.severity = severity
         super.init(viewMode: .sourceAccurate)
     }
 
@@ -125,7 +140,7 @@ private final class MissingDocsVisitor: SyntaxVisitor {
         modifiers: DeclModifierListSyntax,
         trivia: Trivia,
         node: Syntax,
-        name: String
+        name: String,
     ) {
         guard let level = explicitAccessLevel(from: modifiers) else { return }
         guard level >= threshold else { return }
@@ -134,7 +149,7 @@ private final class MissingDocsVisitor: SyntaxVisitor {
         context.report(
             on: node,
             message: "\(name) has \(level.rawValue) access but is missing a doc comment.",
-            severity: .warning
+            severity: severity,
         )
     }
 
