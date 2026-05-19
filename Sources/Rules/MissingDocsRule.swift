@@ -1,28 +1,60 @@
 import SwiftASTLint
 import SwiftSyntax
 
+// MARK: - IgnorePattern
+
+/// A pattern that suppresses missing-docs violations for matching declarations.
+///
+/// All fields are optional; omitting a field is a wildcard (matches anything).
+/// - `kinds`: OR match — declaration must be one of the listed kinds.
+/// - `modifiers`: AND match — declaration must have ALL listed modifiers.
+/// - `names`: OR match — declaration name must be one of the listed names.
+struct IgnorePattern: Codable {
+    /// Declaration kind: "var", "let", "func", "init", "subscript",
+    /// "struct", "class", "actor", "enum", "protocol", "typealias"
+    var kinds: [String]?
+    /// Modifier keywords that must ALL be present, e.g. ["static"].
+    var modifiers: [String]?
+    /// Declaration names to match (exact), e.g. ["liveValue", "previewValue"].
+    var names: [String]?
+
+    func matches(kind: String, modifiers: Set<String>, name: String) -> Bool {
+        if let kinds, !kinds.contains(kind) { return false }
+        if let requiredModifiers = self.modifiers, !requiredModifiers.allSatisfy({ modifiers.contains($0) }) {
+            return false
+        }
+        if let names, !names.contains(name) { return false }
+        return true
+    }
+}
+
 // MARK: - Args
 
 struct MissingDocsArgs: Codable {
     /// Minimum access level that requires a doc comment.
     /// Valid values: "open", "public", "package", "internal", "fileprivate", "private"
     var minAccessLevel: String = "package"
-    var severity: Severity = .warning
+    var severity: Severity = .error
+    /// Patterns for declarations to skip, regardless of access level.
+    var ignorePatterns: [IgnorePattern] = []
 
     enum CodingKeys: String, CodingKey {
         case minAccessLevel = "min_access_level"
         case severity
+        case ignorePatterns = "ignore_patterns"
     }
 
-    init(minAccessLevel: String = "package", severity: Severity = .warning) {
+    init(minAccessLevel: String = "package", severity: Severity = .error, ignorePatterns: [IgnorePattern] = []) {
         self.minAccessLevel = minAccessLevel
         self.severity = severity
+        self.ignorePatterns = ignorePatterns
     }
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         minAccessLevel = try container.decodeIfPresent(String.self, forKey: .minAccessLevel) ?? "package"
-        severity = try container.decodeIfPresent(Severity.self, forKey: .severity) ?? .warning
+        severity = try container.decodeIfPresent(Severity.self, forKey: .severity) ?? .error
+        ignorePatterns = try container.decodeIfPresent([IgnorePattern].self, forKey: .ignorePatterns) ?? []
     }
 }
 
@@ -33,7 +65,12 @@ let missingDocsRule = ParameterizedRule(
     defaultArguments: MissingDocsArgs(),
 ) { file, context, args in
     let threshold = AccessLevel(rawValue: args.minAccessLevel) ?? .public
-    let visitor = MissingDocsVisitor(context: context, threshold: threshold, severity: args.severity)
+    let visitor = MissingDocsVisitor(
+        context: context,
+        threshold: threshold,
+        severity: args.severity,
+        ignorePatterns: args.ignorePatterns
+    )
     visitor.walk(file)
 }
 
@@ -69,60 +106,110 @@ private final class MissingDocsVisitor: SyntaxVisitor {
     let context: LintContext
     let threshold: AccessLevel
     let severity: Severity
+    let ignorePatterns: [IgnorePattern]
 
-    init(context: LintContext, threshold: AccessLevel, severity: Severity) {
+    init(context: LintContext, threshold: AccessLevel, severity: Severity, ignorePatterns: [IgnorePattern]) {
         self.context = context
         self.threshold = threshold
         self.severity = severity
+        self.ignorePatterns = ignorePatterns
         super.init(viewMode: .sourceAccurate)
     }
 
     // MARK: Type declarations
 
     override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
-        check(modifiers: node.modifiers, trivia: node.leadingTrivia, node: Syntax(node), name: node.name.text)
+        check(
+            kind: "struct",
+            modifiers: node.modifiers,
+            trivia: node.leadingTrivia,
+            node: Syntax(node),
+            name: node.name.text
+        )
         return .visitChildren
     }
 
     override func visit(_ node: ClassDeclSyntax) -> SyntaxVisitorContinueKind {
-        check(modifiers: node.modifiers, trivia: node.leadingTrivia, node: Syntax(node), name: node.name.text)
+        check(
+            kind: "class",
+            modifiers: node.modifiers,
+            trivia: node.leadingTrivia,
+            node: Syntax(node),
+            name: node.name.text
+        )
         return .visitChildren
     }
 
     override func visit(_ node: ActorDeclSyntax) -> SyntaxVisitorContinueKind {
-        check(modifiers: node.modifiers, trivia: node.leadingTrivia, node: Syntax(node), name: node.name.text)
+        check(
+            kind: "actor",
+            modifiers: node.modifiers,
+            trivia: node.leadingTrivia,
+            node: Syntax(node),
+            name: node.name.text
+        )
         return .visitChildren
     }
 
     override func visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
-        check(modifiers: node.modifiers, trivia: node.leadingTrivia, node: Syntax(node), name: node.name.text)
+        check(
+            kind: "enum",
+            modifiers: node.modifiers,
+            trivia: node.leadingTrivia,
+            node: Syntax(node),
+            name: node.name.text
+        )
         return .visitChildren
     }
 
     override func visit(_ node: ProtocolDeclSyntax) -> SyntaxVisitorContinueKind {
-        check(modifiers: node.modifiers, trivia: node.leadingTrivia, node: Syntax(node), name: node.name.text)
+        check(
+            kind: "protocol",
+            modifiers: node.modifiers,
+            trivia: node.leadingTrivia,
+            node: Syntax(node),
+            name: node.name.text
+        )
         return .visitChildren
     }
 
     override func visit(_ node: TypeAliasDeclSyntax) -> SyntaxVisitorContinueKind {
-        check(modifiers: node.modifiers, trivia: node.leadingTrivia, node: Syntax(node), name: node.name.text)
+        check(
+            kind: "typealias",
+            modifiers: node.modifiers,
+            trivia: node.leadingTrivia,
+            node: Syntax(node),
+            name: node.name.text
+        )
         return .visitChildren
     }
 
     // MARK: Function / init / subscript
 
     override func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
-        check(modifiers: node.modifiers, trivia: node.leadingTrivia, node: Syntax(node), name: node.name.text)
+        check(
+            kind: "func",
+            modifiers: node.modifiers,
+            trivia: node.leadingTrivia,
+            node: Syntax(node),
+            name: node.name.text
+        )
         return .visitChildren
     }
 
     override func visit(_ node: InitializerDeclSyntax) -> SyntaxVisitorContinueKind {
-        check(modifiers: node.modifiers, trivia: node.leadingTrivia, node: Syntax(node), name: "init")
+        check(kind: "init", modifiers: node.modifiers, trivia: node.leadingTrivia, node: Syntax(node), name: "init")
         return .visitChildren
     }
 
     override func visit(_ node: SubscriptDeclSyntax) -> SyntaxVisitorContinueKind {
-        check(modifiers: node.modifiers, trivia: node.leadingTrivia, node: Syntax(node), name: "subscript")
+        check(
+            kind: "subscript",
+            modifiers: node.modifiers,
+            trivia: node.leadingTrivia,
+            node: Syntax(node),
+            name: "subscript"
+        )
         return .visitChildren
     }
 
@@ -130,13 +217,15 @@ private final class MissingDocsVisitor: SyntaxVisitor {
 
     override func visit(_ node: VariableDeclSyntax) -> SyntaxVisitorContinueKind {
         let name = node.bindings.first?.pattern.trimmedDescription ?? "variable"
-        check(modifiers: node.modifiers, trivia: node.leadingTrivia, node: Syntax(node), name: name)
+        let kind = node.bindingSpecifier.tokenKind == .keyword(.var) ? "var" : "let"
+        check(kind: kind, modifiers: node.modifiers, trivia: node.leadingTrivia, node: Syntax(node), name: name)
         return .visitChildren
     }
 
     // MARK: Core check
 
     private func check(
+        kind: String,
         modifiers: DeclModifierListSyntax,
         trivia: Trivia,
         node: Syntax,
@@ -145,6 +234,11 @@ private final class MissingDocsVisitor: SyntaxVisitor {
         guard let level = explicitAccessLevel(from: modifiers) else { return }
         guard level >= threshold else { return }
         guard !hasDocComment(trivia) else { return }
+
+        let modifierSet = modifierKeywords(from: modifiers)
+        guard !ignorePatterns.contains(where: { $0.matches(kind: kind, modifiers: modifierSet, name: name) }) else {
+            return
+        }
 
         context.report(
             on: node,
@@ -180,5 +274,18 @@ private final class MissingDocsVisitor: SyntaxVisitor {
             }
         }
         return false
+    }
+
+    /// Extracts modifier keywords (static, class, override, final) as a Set of strings.
+    private func modifierKeywords(from modifiers: DeclModifierListSyntax) -> Set<String> {
+        Set(modifiers.compactMap { modifier -> String? in
+            switch modifier.name.tokenKind {
+            case .keyword(.static): "static"
+            case .keyword(.class): "class"
+            case .keyword(.override): "override"
+            case .keyword(.final): "final"
+            default: nil
+            }
+        })
     }
 }
