@@ -43,7 +43,7 @@ swift build -c release
 | `no-top-level-function` | error | ✓ | Forbids file-scope `func` declarations regardless of access modifier — move helpers onto a type, into an extension, or inside a namespace `enum` |
 | `return-if-expression` | warning | ✓ | Detects multi-branch `if`/`else` blocks where every branch contains a single `return <expr>` — collapse into `return if { … } else { … }` |
 | `use-url-file-path` | warning | ✓ | Flags deprecated `URL(fileURLWithPath:)` initializer — use `URL(filePath:)` (iOS 16+ / macOS 13+) instead |
-| `missing-docs` | warning | ✓ | Flags declarations missing a doc comment — configurable minimum access level |
+| `missing-docs` | error | ✓ | Flags declarations missing a doc comment — configurable minimum access level and ignore patterns |
 | `meaningful-suite-description` | error | ✓ | Flags `@Suite` descriptions that are identical to the type name (or the name minus a `Tests`/`Test`/`Spec` suffix) — write a description that explains what the suite tests |
 | `test-function-naming` | error | ✓ | Flags `@Test` functions whose name is a backtick-quoted phrase — use lowerCamelCase and move the description into `@Test("…")` |
 
@@ -417,7 +417,7 @@ Flags declarations with explicit access level at or above `min_access_level` tha
 Applies to: `struct`, `class`, `actor`, `enum`, `protocol`, `typealias`, `func`, `init`, `subscript`, and `var`/`let` declarations.
 
 ```swift
-// ❌ warning (default min_access_level: package)
+// ❌ error (default min_access_level: package)
 public struct NetworkClient {
     public func fetch() {}
 }
@@ -437,7 +437,37 @@ rules:
   missing-docs:
     args:
       min_access_level: public   # default: package
-      severity: error            # default: warning
+      severity: warning          # default: error
+      ignore_patterns:
+        - kinds: [var, let]
+          modifiers: [static]
+          names: [liveValue, previewValue, testValue]
+```
+
+**`ignore_patterns`**
+
+Each entry in `ignore_patterns` suppresses violations for declarations that match all specified fields. Omitting a field is a wildcard (matches anything).
+
+| Field | Type | Match | Description |
+|-------|------|-------|-------------|
+| `kinds` | `[String]` | OR | Declaration kind: `"var"`, `"let"`, `"func"`, `"init"`, `"subscript"`, `"struct"`, `"class"`, `"actor"`, `"enum"`, `"protocol"`, `"typealias"` |
+| `modifiers` | `[String]` | AND | All listed modifiers must be present: `"static"`, `"class"`, `"override"`, `"final"` |
+| `names` | `[String]` | OR | Exact declaration name |
+
+```yaml
+# Suppress doc-comment requirement for TCA DependencyKey boilerplate
+ignore_patterns:
+  - kinds: [var, let]
+    modifiers: [static]
+    names: [liveValue, previewValue, testValue]
+
+# Suppress for all static vars named "shared" regardless of type
+  - kinds: [var]
+    modifiers: [static]
+    names: [shared]
+
+# Suppress for any declaration named "placeholder" (wildcard kinds/modifiers)
+  - names: [placeholder]
 ```
 
 ## Usage

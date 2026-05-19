@@ -26,7 +26,7 @@ struct MissingDocsRuleTests {
     func publicDeclWithoutDoc(declaration: String) async {
         let diagnostics = await rule.lint(source: declaration)
         #expect(!diagnostics.isEmpty, "Expected violation for: \(declaration)")
-        #expect(diagnostics[0].severity == .warning)
+        #expect(diagnostics[0].severity == .error)
     }
 
     @Test("no error when public init has doc comment")
@@ -287,5 +287,14 @@ struct MissingDocsRuleTests {
         let diagnostics = await rule.lint(source: source)
         #expect(diagnostics.count == 1)
         #expect(diagnostics[0].message.contains("myFancyFunction"))
+    }
+
+    // MARK: - default severity
+
+    @Test("default severity is error")
+    func defaultSeverityIsError() async {
+        let diagnostics = await rule.lint(source: "public func foo() {}")
+        #expect(!diagnostics.isEmpty)
+        #expect(diagnostics[0].severity == .error)
     }
 }
