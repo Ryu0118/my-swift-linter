@@ -5,7 +5,7 @@ import SwiftSyntax
 /// Detects deprecated URL initializers that use `fileURLWithPath` labels
 /// and suggests migrating to `URL(filePath:)` / `URL(filePath:directoryHint:)`.
 struct UseURLFilePathArgs: Codable {
-    var severity: Severity = .warning
+    var severity: Severity = .error
 }
 
 let useURLFilePathRule = ParameterizedRule(

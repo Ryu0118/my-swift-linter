@@ -12,7 +12,7 @@ struct BranchAssignmentToTupleRuleTests {
 
     // MARK: - Violations: if/else
 
-    @Test("warning when 2 uninitialized lets are assigned in if/else")
+    @Test("error when 2 uninitialized lets are assigned in if/else")
     func twoLetsIfElse() async {
         let source = """
         func foo(flag: Bool) {
@@ -28,10 +28,10 @@ struct BranchAssignmentToTupleRuleTests {
         }
         """
         let diagnostics = await rule.lint(source: source)
-        #expect(diagnostics.contains { $0.severity == .warning })
+        #expect(diagnostics.contains { $0.severity == .error })
     }
 
-    @Test("warning when 3 uninitialized lets are assigned in if/else")
+    @Test("error when 3 uninitialized lets are assigned in if/else")
     func threeLetsIfElse() async {
         let source = """
         func foo(x: Bool) {
@@ -50,10 +50,10 @@ struct BranchAssignmentToTupleRuleTests {
         }
         """
         let diagnostics = await rule.lint(source: source)
-        #expect(diagnostics.contains { $0.severity == .warning })
+        #expect(diagnostics.contains { $0.severity == .error })
     }
 
-    @Test("warning when lets are in a closure body")
+    @Test("error when lets are in a closure body")
     func letsInClosure() async {
         let source = """
         let result = {
@@ -70,12 +70,12 @@ struct BranchAssignmentToTupleRuleTests {
         }()
         """
         let diagnostics = await rule.lint(source: source)
-        #expect(diagnostics.contains { $0.severity == .warning })
+        #expect(diagnostics.contains { $0.severity == .error })
     }
 
     // MARK: - Violations: switch
 
-    @Test("warning when 2 uninitialized lets are assigned in switch")
+    @Test("error when 2 uninitialized lets are assigned in switch")
     func twoLetsSwitch() async {
         let source = """
         enum Mode { case fast, slow }
@@ -93,12 +93,12 @@ struct BranchAssignmentToTupleRuleTests {
         }
         """
         let diagnostics = await rule.lint(source: source)
-        #expect(diagnostics.contains { $0.severity == .warning })
+        #expect(diagnostics.contains { $0.severity == .error })
     }
 
     // MARK: - Non-violations
 
-    @Test("warning when single uninitialized let is assigned in if/else (use if expression instead)")
+    @Test("error when single uninitialized let is assigned in if/else (use if expression instead)")
     func singleLetIfElse() async {
         let source = """
         func foo(flag: Bool) {
@@ -111,10 +111,10 @@ struct BranchAssignmentToTupleRuleTests {
         }
         """
         let diagnostics = await rule.lint(source: source)
-        #expect(diagnostics.contains { $0.severity == .warning })
+        #expect(diagnostics.contains { $0.severity == .error })
     }
 
-    @Test("warning when single let uses if let condition")
+    @Test("error when single let uses if let condition")
     func singleLetIfLet() async {
         let source = """
         func foo(x: Int?) {
@@ -127,7 +127,7 @@ struct BranchAssignmentToTupleRuleTests {
         }
         """
         let diagnostics = await rule.lint(source: source)
-        #expect(diagnostics.contains { $0.severity == .warning })
+        #expect(diagnostics.contains { $0.severity == .error })
     }
 
     @Test("no warning when lets are initialized at declaration")

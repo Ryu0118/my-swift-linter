@@ -38,15 +38,15 @@ struct SingleLargeTypePerFileRuleTests {
 
     // MARK: - Violation tests
 
-    @Test("warning when two public types each >= 50 lines (default warning threshold)")
+    @Test("error when two public types each >= 50 lines")
     func twoLargePublicTypes() async {
         let source = publicStruct(name: "Foo", lines: 50) + "\n" + publicStruct(name: "Bar", lines: 50)
         let diagnostics = await rule.lint(source: source)
         #expect(diagnostics.count == 2)
-        #expect(diagnostics.allSatisfy { $0.severity == .warning })
+        #expect(diagnostics.allSatisfy { $0.severity == .error })
     }
 
-    @Test("error when two public types each >= 100 lines (default error threshold)")
+    @Test("error when two public types each >= 100 lines")
     func twoLargePublicTypesError() async {
         let source = publicStruct(name: "Foo", lines: 100) + "\n" + publicStruct(name: "Bar", lines: 100)
         let diagnostics = await rule.lint(source: source)
@@ -54,15 +54,15 @@ struct SingleLargeTypePerFileRuleTests {
         #expect(diagnostics.allSatisfy { $0.severity == .error })
     }
 
-    @Test("warning when two package types each >= 50 lines")
+    @Test("error when two package types each >= 50 lines")
     func twoLargePackageTypes() async {
         let source = packageStruct(name: "Foo", lines: 50) + "\n" + packageStruct(name: "Bar", lines: 50)
         let diagnostics = await rule.lint(source: source)
         #expect(diagnostics.count == 2)
-        #expect(diagnostics.allSatisfy { $0.severity == .warning })
+        #expect(diagnostics.allSatisfy { $0.severity == .error })
     }
 
-    @Test("warning when mixed public and package large types")
+    @Test("error when mixed public and package large types")
     func mixedPublicPackage() async {
         let source = publicStruct(name: "Foo", lines: 50) + "\n" + packageStruct(name: "Bar", lines: 50)
         let diagnostics = await rule.lint(source: source)
@@ -140,12 +140,12 @@ struct SingleLargeTypePerFileRuleTests {
         #expect(diagnostics.isEmpty)
     }
 
-    @Test("warning at exactly 50 lines (at warning threshold)")
+    @Test("error at exactly 50 lines")
     func atWarningThreshold() async {
         let source = publicStruct(name: "Foo", lines: 50) + "\n" + publicStruct(name: "Bar", lines: 50)
         let diagnostics = await rule.lint(source: source)
         #expect(diagnostics.count == 2)
-        #expect(diagnostics.allSatisfy { $0.severity == .warning })
+        #expect(diagnostics.allSatisfy { $0.severity == .error })
     }
 
     @Test("error at exactly 100 lines (at error threshold)")

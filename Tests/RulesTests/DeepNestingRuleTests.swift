@@ -12,7 +12,7 @@ struct DeepNestingRuleTests {
 
     // MARK: - Violation tests
 
-    @Test("warning at depth 3 (default warning threshold)")
+    @Test("error at depth 3 (default threshold)")
     func atWarningThreshold() async {
         let source = """
         func foo() {
@@ -25,10 +25,10 @@ struct DeepNestingRuleTests {
         """
         let diagnostics = await rule.lint(source: source)
         #expect(diagnostics.count == 1)
-        #expect(diagnostics[0].severity == .warning)
+        #expect(diagnostics[0].severity == .error)
     }
 
-    @Test("error at depth 5 (default error threshold)")
+    @Test("error at depth 5")
     func atErrorThreshold() async {
         let source = """
         func foo() {
@@ -47,7 +47,7 @@ struct DeepNestingRuleTests {
         #expect(diagnostics.contains { $0.severity == .error })
     }
 
-    @Test("depths 3 and 4 both produce warnings (below error threshold)")
+    @Test("depths 3 and 4 both produce errors by default")
     func betweenThresholds() async {
         let source = """
         func foo() {
@@ -62,7 +62,7 @@ struct DeepNestingRuleTests {
         """
         let diagnostics = await rule.lint(source: source)
         #expect(diagnostics.count == 2)
-        #expect(diagnostics.allSatisfy { $0.severity == .warning })
+        #expect(diagnostics.allSatisfy { $0.severity == .error })
     }
 
     // MARK: - False positive tests

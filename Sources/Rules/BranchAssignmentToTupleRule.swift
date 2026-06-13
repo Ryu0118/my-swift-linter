@@ -43,7 +43,7 @@ import SwiftSyntax
 ///
 /// Fix-It is intentionally omitted; branch-level side-effects may prevent a mechanical rewrite.
 struct BranchAssignmentToTupleArgs: Codable {
-    var severity: Severity = .warning
+    var severity: Severity = .error
 }
 
 let branchAssignmentToTupleRule = ParameterizedRule(

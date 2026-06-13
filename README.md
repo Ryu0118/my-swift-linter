@@ -34,16 +34,16 @@ swift build -c release
 
 | Rule ID | Default Severity | Configurable | Description |
 |---------|-----------------|:------------:|-------------|
-| `deep-nesting` | warning / error | ✓ | Flags control flow nesting — warning at depth ≥ `warning_depth` (default: 3), error at depth ≥ `error_depth` (default: 5) |
-| `single-large-type-per-file` | warning / error | ✓ | Flags files with two or more large public/package types — warning at ≥ `warning_lines` lines (default: 50), error at ≥ `error_lines` lines (default: 100) |
-| `property-declaration-ordering` | warning | ✓ | Properties must be grouped by property wrapper, then by access modifier |
-| `function-access-modifier-grouping` | warning | ✓ | Functions must be grouped by access modifier (open → public → … → private) |
+| `deep-nesting` | error | ✓ | Flags control flow nesting — error at depth ≥ `error_depth` (default: 3); `warning_depth` can be configured separately |
+| `single-large-type-per-file` | error | ✓ | Flags files with two or more large public/package types — error at ≥ `error_lines` lines (default: 50); `warning_lines` can be configured separately |
+| `property-declaration-ordering` | error | ✓ | Properties must be grouped by property wrapper, then by access modifier |
+| `function-access-modifier-grouping` | error | ✓ | Functions must be grouped by access modifier (open → public → … → private) |
 | `swiftui-view-property` | error | ✓ | `return` is forbidden in `some View` properties; `@ViewBuilder` is required when the body contains top-level `let`/`var`/`if`/`switch` |
-| `branch-assignment-to-tuple` | warning | ✓ | Detects uninitialized `let` declarations followed by an `if`/`switch` that assigns every variable in every branch — collapse into an expression-form `let` |
+| `branch-assignment-to-tuple` | error | ✓ | Detects uninitialized `let` declarations followed by an `if`/`switch` that assigns every variable in every branch — collapse into an expression-form `let` |
 | `no-top-level-function` | error | ✓ | Forbids file-scope `func` declarations regardless of access modifier — move helpers onto a type, into an extension, or inside a namespace `enum` |
-| `return-if-expression` | warning | ✓ | Detects multi-branch `if`/`else` blocks where every branch contains a single `return <expr>` — collapse into `return if { … } else { … }` |
-| `return-switch-expression` | warning | ✓ | Detects `switch` blocks where every case contains a single `return <expr>` — collapse into `return switch { … }` |
-| `use-url-file-path` | warning | ✓ | Flags deprecated `URL(fileURLWithPath:)` initializer — use `URL(filePath:)` (iOS 16+ / macOS 13+) instead |
+| `return-if-expression` | error | ✓ | Detects multi-branch `if`/`else` blocks where every branch contains a single `return <expr>` — collapse into `return if { … } else { … }` |
+| `return-switch-expression` | error | ✓ | Detects `switch` blocks where every case contains a single `return <expr>` — collapse into `return switch { … }` |
+| `use-url-file-path` | error | ✓ | Flags deprecated `URL(fileURLWithPath:)` initializer — use `URL(filePath:)` (iOS 16+ / macOS 13+) instead |
 | `missing-docs` | error | ✓ | Flags declarations missing a doc comment — configurable minimum access level and ignore patterns |
 | `meaningful-suite-description` | error | ✓ | Flags `@Suite` descriptions that are identical to the type name (or the name minus a `Tests`/`Test`/`Spec` suffix) — write a description that explains what the suite tests |
 | `test-function-naming` | error | ✓ | Flags `@Test` functions whose name is a backtick-quoted phrase — use lowerCamelCase and move the description into `@Test("…")` |
@@ -81,7 +81,7 @@ rules:
   deep-nesting:
     args:
       warning_depth: 3   # default
-      error_depth: 5     # default
+      error_depth: 3     # default
 ```
 
 ### single-large-type-per-file
@@ -103,7 +103,7 @@ rules:
   single-large-type-per-file:
     args:
       warning_lines: 50    # default
-      error_lines: 100     # default
+      error_lines: 50      # default
 ```
 
 ### property-declaration-ordering
@@ -116,11 +116,11 @@ Properties within a type must be sorted first by property wrapper (alphabeticall
 rules:
   property-declaration-ordering:
     args:
-      severity: error   # default: warning
+      severity: error   # default
 ```
 
 ```swift
-// ❌ warning
+// ❌ error
 struct MyView: View {
     var title: String
     @State private var isLoading = false
@@ -147,11 +147,11 @@ Function declarations within a type must be grouped in descending access order: 
 rules:
   function-access-modifier-grouping:
     args:
-      severity: error   # default: warning
+      severity: error   # default
 ```
 
 ```swift
-// ❌ warning
+// ❌ error
 struct Service {
     private func helper() {}
     public func fetch() {}
@@ -216,7 +216,7 @@ rules:
 Detects the pattern of declaring one or more uninitialized `let` variables followed by an `if`/`switch` whose every branch only contains simple assignments to those variables. The whole block can be collapsed into an expression-form `let` binding (with a tuple when several variables are involved).
 
 ```swift
-// ❌ warning — single variable
+// ❌ error — single variable
 let hoge: Int
 if let x {
     hoge = x
@@ -227,7 +227,7 @@ if let x {
 // ✅
 let hoge = if let x { x } else { y }
 
-// ❌ warning — multiple variables
+// ❌ error — multiple variables
 let days: Int
 let pages: Int
 if let duration {
@@ -254,7 +254,7 @@ No Fix-It is provided because branch-level side effects may prevent a mechanical
 rules:
   branch-assignment-to-tuple:
     args:
-      severity: error   # default: warning
+      severity: error   # default
 ```
 
 ### no-top-level-function
@@ -296,7 +296,7 @@ Triggers only when:
 - Every branch body contains exactly one `return <expr>` (non-bare `return`)
 
 ```swift
-// ❌ warning
+// ❌ error
 func label(_ n: Int) -> String {
     if n < 0 {
         return "negative"
@@ -321,7 +321,48 @@ A Fix-It is provided.
 rules:
   return-if-expression:
     args:
-      severity: error   # default: warning
+      severity: error   # default
+```
+
+### return-switch-expression
+
+Detects when every `switch` case contains exactly one `return <expr>` and suggests collapsing the statement into a single `return switch …` expression.
+
+```swift
+// ❌ error
+func mappedValue(_ input: Input) -> Int {
+    switch input {
+    case .first:
+        return 1
+    case .second:
+        return 2
+    case .third:
+        return 3
+    }
+}
+
+// ✅ (auto-fixed)
+func mappedValue(_ input: Input) -> Int {
+    return switch input {
+    case .first:
+        1
+    case .second:
+        2
+    case .third:
+        3
+    }
+}
+```
+
+A Fix-It is provided.
+
+**Configuration**
+
+```yaml
+rules:
+  return-switch-expression:
+    args:
+      severity: error   # default
 ```
 
 ### use-url-file-path
@@ -329,7 +370,7 @@ rules:
 `URL(fileURLWithPath:)` was deprecated in iOS 16 / macOS 13. Use the replacement initializer `URL(filePath:)` which accepts a `String`, `FilePath`, or other typed path.
 
 ```swift
-// ❌ warning
+// ❌ error
 let url = URL(fileURLWithPath: path)
 let url = URL(fileURLWithPath: path, relativeTo: base)
 let url = .init(fileURLWithPath: path)
@@ -346,7 +387,7 @@ No Fix-It is provided because the replacement may require a `FilePath` import.
 rules:
   use-url-file-path:
     args:
-      severity: error   # default: warning
+      severity: error   # default
 ```
 
 ### meaningful-suite-description
@@ -494,7 +535,7 @@ rules:
   deep-nesting:
     args:
       warning_depth: 3
-      error_depth: 5
+      error_depth: 3
     include:
       - "Sources/**"
     exclude:
@@ -502,7 +543,7 @@ rules:
   single-large-type-per-file:
     args:
       warning_lines: 50
-      error_lines: 100
+      error_lines: 50
 ```
 
 ## Requirements
