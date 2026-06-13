@@ -12,7 +12,7 @@ struct PropertyDeclarationOrderingRuleTests {
 
     // MARK: - Violation: access modifier ungrouped
 
-    @Test("error when access modifiers are not grouped")
+    @Test("warning when access modifiers are not grouped")
     func ungroupedAccessModifiers() async {
         let source = """
         struct Foo {
@@ -24,10 +24,10 @@ struct PropertyDeclarationOrderingRuleTests {
         """
         let diagnostics = await rule.lint(source: source)
         #expect(diagnostics.count == 1)
-        #expect(diagnostics[0].severity == .error)
+        #expect(diagnostics[0].severity == .warning)
     }
 
-    @Test("error when same access level is split by another")
+    @Test("warning when same access level is split by another")
     func splitAccessLevel() async {
         let source = """
         struct Foo {
@@ -42,7 +42,7 @@ struct PropertyDeclarationOrderingRuleTests {
 
     // MARK: - Violation: property wrapper ungrouped
 
-    @Test("error when property wrappers are not grouped")
+    @Test("warning when property wrappers are not grouped")
     func ungroupedWrappers() async {
         let source = """
         struct Foo {
@@ -55,10 +55,10 @@ struct PropertyDeclarationOrderingRuleTests {
         """
         let diagnostics = await rule.lint(source: source)
         #expect(diagnostics.count == 1)
-        #expect(diagnostics[0].severity == .error)
+        #expect(diagnostics[0].severity == .warning)
     }
 
-    @Test("error when different wrappers are interleaved")
+    @Test("warning when different wrappers are interleaved")
     func interleavedWrappers() async {
         let source = """
         struct Foo {
@@ -73,7 +73,7 @@ struct PropertyDeclarationOrderingRuleTests {
 
     // MARK: - Violation: both ungrouped
 
-    @Test("error when both wrapper and access modifier are ungrouped")
+    @Test("warning when both wrapper and access modifier are ungrouped")
     func bothUngrouped() async {
         let source = """
         struct Foo {

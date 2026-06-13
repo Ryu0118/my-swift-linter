@@ -12,7 +12,7 @@ struct ReturnSwitchExpressionRuleTests {
 
     // MARK: - Violations
 
-    @Test("error on switch with return in every case")
+    @Test("warning on switch with return in every case")
     func simpleSwitch() async {
         let source = """
         func mappedValue(_ input: Input) -> Int {
@@ -26,10 +26,10 @@ struct ReturnSwitchExpressionRuleTests {
         """
         let diagnostics = await rule.lint(source: source)
         #expect(diagnostics.count == 1)
-        #expect(diagnostics[0].severity == .error)
+        #expect(diagnostics[0].severity == .warning)
     }
 
-    @Test("error on switch with more than two cases")
+    @Test("warning on switch with more than two cases")
     func moreThanTwoCases() async {
         let source = """
         func priority(for status: Status) -> Int {
@@ -47,7 +47,7 @@ struct ReturnSwitchExpressionRuleTests {
         #expect(diagnostics.count == 1)
     }
 
-    @Test("error on switch with multiple patterns in one case")
+    @Test("warning on switch with multiple patterns in one case")
     func multiplePatternsInCase() async {
         let source = """
         func symbol(for direction: Direction) -> String {
@@ -63,7 +63,7 @@ struct ReturnSwitchExpressionRuleTests {
         #expect(diagnostics.count == 1)
     }
 
-    @Test("error on switch with where clauses")
+    @Test("warning on switch with where clauses")
     func whereClauses() async {
         let source = """
         func label(for score: Int) -> String {
@@ -81,7 +81,7 @@ struct ReturnSwitchExpressionRuleTests {
         #expect(diagnostics.count == 1)
     }
 
-    @Test("error on switch with default case")
+    @Test("warning on switch with default case")
     func defaultCase() async {
         let source = """
         func label(_ value: Int) -> String {
@@ -97,7 +97,7 @@ struct ReturnSwitchExpressionRuleTests {
         #expect(diagnostics.count == 1)
     }
 
-    @Test("error in computed property")
+    @Test("warning in computed property")
     func computedProperty() async {
         let source = """
         struct StatusViewModel {
@@ -233,7 +233,7 @@ struct ReturnSwitchExpressionRuleTests {
         #expect(!fixedSource.contains("return 2"))
     }
 
-    @Test("multiple qualifying switches each produce one error")
+    @Test("multiple qualifying switches each produce one warning")
     func multipleSwitches() async {
         let source = """
         func a(_ value: Int) -> String {

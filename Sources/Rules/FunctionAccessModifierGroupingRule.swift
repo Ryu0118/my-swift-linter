@@ -2,7 +2,7 @@ import SwiftASTLint
 import SwiftDiagnostics
 import SwiftSyntax
 
-/// Emits an error when function declarations within a type are not grouped by access modifier.
+/// Emits a warning when function declarations within a type are not grouped by access modifier.
 ///
 /// Expected order: open → public → package → internal (implicit) → fileprivate → private
 ///
@@ -10,7 +10,7 @@ import SwiftSyntax
 /// A Fix-It is provided to reorder automatically.
 /// init / deinit / subscript are excluded; only regular `func` declarations are checked.
 struct FunctionAccessModifierGroupingArgs: Codable {
-    var severity: Severity = .error
+    var severity: Severity = .warning
 }
 
 let functionAccessModifierGroupingRule = ParameterizedRule(

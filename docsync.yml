@@ -6,7 +6,7 @@ rules:
   doc: README.md
   message: "A rule implementation changed \u2014 update README if the rule ID, severity,
     configuration keys, or code examples changed."
-  checksum: 682f18a53d3aa53381b012434df7832b7a462db2d4daf52d615a4395a159090d
+  checksum: d60bea86473a882937aefd27367e3be5d144df949bc42133c0e890f4e5bd8e0f
 - name: readme-cli
   sources:
   - Sources/my-swift-linter/main.swift
