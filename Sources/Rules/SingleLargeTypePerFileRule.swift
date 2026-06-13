@@ -2,10 +2,10 @@ import SwiftASTLint
 import SwiftSyntax
 
 struct SingleLargeTypeArgs: Codable {
-    /// Line count at which a type is considered large enough to warn. Must be less than or equal to `error_lines`.
+    /// Line count at which a type is considered large enough to warn. Must be less than `error_lines`.
     var warningLines: Int = 50
     /// Line count at which a type triggers an error when multiple appear in one file.
-    var errorLines: Int = 50
+    var errorLines: Int = 100
 
     enum CodingKeys: String, CodingKey {
         case warningLines = "warning_lines"
@@ -14,7 +14,7 @@ struct SingleLargeTypeArgs: Codable {
 }
 
 /// Flags files that contain two or more large `public`/`package` types.
-/// Emits an error by default when each type exceeds `error_lines` lines.
+/// Emits a warning when each type exceeds `warning_lines` lines, an error when each exceeds `error_lines` lines.
 /// Nested types are not counted as top-level declarations.
 ///
 /// Configure via YAML:
@@ -23,7 +23,7 @@ struct SingleLargeTypeArgs: Codable {
 ///   single-large-type-per-file:
 ///     args:
 ///       warning_lines: 50
-///       error_lines: 50
+///       error_lines: 100
 /// ```
 let singleLargeTypePerFileRule = ParameterizedRule(
     id: "single-large-type-per-file",

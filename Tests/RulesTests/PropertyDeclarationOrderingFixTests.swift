@@ -141,7 +141,7 @@ struct PropertyDeclarationOrderingFixTests {
         #expect(diagnostics.isEmpty)
     }
 
-    @Test("error when computed property is between stored properties")
+    @Test("warning when computed property is between stored properties")
     func computedBetweenStored() async {
         let source = """
         struct Foo {
@@ -179,7 +179,7 @@ struct PropertyDeclarationOrderingFixTests {
 
     // MARK: - var body ordering
 
-    @Test("error when computed property appears before var body")
+    @Test("warning when computed property appears before var body")
     func computedBeforeBody() async {
         let source = """
         struct MyView: View {

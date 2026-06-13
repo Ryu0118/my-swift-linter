@@ -2,7 +2,7 @@ import SwiftASTLint
 import SwiftDiagnostics
 import SwiftSyntax
 
-/// Emits an error when property declarations within a type are not grouped
+/// Emits a warning when property declarations within a type are not grouped
 /// (1) by property wrapper and (2) by access modifier.
 ///
 /// Sort priority:
@@ -13,7 +13,7 @@ import SwiftSyntax
 /// `var body` is always placed first among computed properties.
 /// A Fix-It is provided to reorder automatically.
 struct PropertyDeclarationOrderingArgs: Codable {
-    var severity: Severity = .error
+    var severity: Severity = .warning
 }
 
 let propertyDeclarationOrderingRule = ParameterizedRule(

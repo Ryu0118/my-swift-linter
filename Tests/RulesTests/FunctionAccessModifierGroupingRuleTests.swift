@@ -12,7 +12,7 @@ struct FunctionAccessModifierGroupingRuleTests {
 
     // MARK: - Violation tests
 
-    @Test("error when access modifiers are not grouped")
+    @Test("warning when access modifiers are not grouped")
     func ungroupedAccessModifiers() async {
         let source = """
         struct Foo {
@@ -24,10 +24,10 @@ struct FunctionAccessModifierGroupingRuleTests {
         """
         let diagnostics = await rule.lint(source: source)
         #expect(diagnostics.count == 1)
-        #expect(diagnostics[0].severity == .error)
+        #expect(diagnostics[0].severity == .warning)
     }
 
-    @Test("error when same access level is split by another")
+    @Test("warning when same access level is split by another")
     func splitAccessLevel() async {
         let source = """
         struct Foo {

@@ -12,7 +12,7 @@ struct ReturnIfExpressionRuleTests {
 
     // MARK: - Violations
 
-    @Test("error on simple if/else with return in each branch")
+    @Test("warning on simple if/else with return in each branch")
     func simpleIfElse() async {
         let source = """
         func foo(_ x: Bool) -> String {
@@ -25,10 +25,10 @@ struct ReturnIfExpressionRuleTests {
         """
         let diagnostics = await rule.lint(source: source)
         #expect(diagnostics.count == 1)
-        #expect(diagnostics[0].severity == .error)
+        #expect(diagnostics[0].severity == .warning)
     }
 
-    @Test("error on if/else-if/else chain")
+    @Test("warning on if/else-if/else chain")
     func ifElseIfElse() async {
         let source = """
         func label(_ n: Int) -> String {
@@ -45,7 +45,7 @@ struct ReturnIfExpressionRuleTests {
         #expect(diagnostics.count == 1)
     }
 
-    @Test("error on three-clause else-if chain")
+    @Test("warning on three-clause else-if chain")
     func threeElseIf() async {
         let source = """
         func grade(_ s: Int) -> String {
@@ -64,7 +64,7 @@ struct ReturnIfExpressionRuleTests {
         #expect(diagnostics.count == 1)
     }
 
-    @Test("error on motivating time-formatting pattern (func)")
+    @Test("warning on motivating time-formatting pattern (func)")
     func timeFormattingPatternFunc() async {
         let source = """
         func formatSeconds(_ seconds: Int) -> String {
@@ -81,7 +81,7 @@ struct ReturnIfExpressionRuleTests {
         #expect(diagnostics.count == 1)
     }
 
-    @Test("error on motivating time-formatting pattern (computed property)")
+    @Test("warning on motivating time-formatting pattern (computed property)")
     func timeFormattingPatternComputedProperty() async {
         let source = """
         struct S {
@@ -102,7 +102,7 @@ struct ReturnIfExpressionRuleTests {
         #expect(diagnostics.count == 1)
     }
 
-    @Test("error on if with conditional binding")
+    @Test("warning on if with conditional binding")
     func conditionalBinding() async {
         let source = """
         func f(_ x: Int?) -> String {
@@ -287,7 +287,7 @@ struct ReturnIfExpressionRuleTests {
         #expect(diagnostics.isEmpty)
     }
 
-    @Test("multiple qualifying if/else blocks each produce one error")
+    @Test("multiple qualifying if/else blocks each produce one warning")
     func multipleBlocks() async {
         let source = """
         func a(_ x: Bool) -> String {

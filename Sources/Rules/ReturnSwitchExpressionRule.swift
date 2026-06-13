@@ -17,7 +17,7 @@ import SwiftSyntax
 ///
 /// **Auto-fix:** Rewrites to `return switch value { case ...: expr }`.
 struct ReturnSwitchExpressionArgs: Codable {
-    var severity: Severity = .error
+    var severity: Severity = .warning
 }
 
 let returnSwitchExpressionRule = ParameterizedRule(
