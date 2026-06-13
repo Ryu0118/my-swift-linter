@@ -19,7 +19,7 @@ import SwiftSyntax
 ///
 /// **Auto-fix:** Rewrites to `return if ... { <expr> } else if ... { <expr> } else { <expr> }`.
 struct ReturnIfExpressionArgs: Codable {
-    var severity: Severity = .warning
+    var severity: Severity = .error
 }
 
 let returnIfExpressionRule = ParameterizedRule(

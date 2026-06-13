@@ -12,27 +12,27 @@ struct UseURLFilePathRuleTests {
 
     // MARK: - Violations
 
-    @Test("warning on URL(fileURLWithPath:)")
+    @Test("error on URL(fileURLWithPath:)")
     func fileURLWithPath() async {
         let source = """
         let url = URL(fileURLWithPath: "/tmp/file.txt")
         """
         let diagnostics = await rule.lint(source: source)
         #expect(diagnostics.count == 1)
-        #expect(diagnostics[0].severity == .warning)
+        #expect(diagnostics[0].severity == .error)
     }
 
-    @Test("warning on URL(fileURLWithPath:isDirectory:)")
+    @Test("error on URL(fileURLWithPath:isDirectory:)")
     func fileURLWithPathIsDirectory() async {
         let source = """
         let url = URL(fileURLWithPath: "/tmp/dir", isDirectory: true)
         """
         let diagnostics = await rule.lint(source: source)
         #expect(diagnostics.count == 1)
-        #expect(diagnostics[0].severity == .warning)
+        #expect(diagnostics[0].severity == .error)
     }
 
-    @Test("warning on explicit URL.init(fileURLWithPath:)")
+    @Test("error on explicit URL.init(fileURLWithPath:)")
     func explicitInitForm() async {
         let source = """
         let url = URL.init(fileURLWithPath: "/tmp/file.txt")
@@ -41,7 +41,7 @@ struct UseURLFilePathRuleTests {
         #expect(diagnostics.count == 1)
     }
 
-    @Test("warning on implicit-base .init(fileURLWithPath:)")
+    @Test("error on implicit-base .init(fileURLWithPath:)")
     func implicitBaseInitForm() async {
         let source = """
         let hoge: URL = .init(fileURLWithPath: "/tmp/file.txt")
@@ -50,7 +50,7 @@ struct UseURLFilePathRuleTests {
         #expect(diagnostics.count == 1)
     }
 
-    @Test("warning on multiple occurrences")
+    @Test("error on multiple occurrences")
     func multipleOccurrences() async {
         let source = """
         let a = URL(fileURLWithPath: "/tmp/a.txt")
