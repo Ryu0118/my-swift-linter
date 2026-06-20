@@ -172,7 +172,7 @@ A Fix-It is provided to reorder automatically.
 
 **Pattern B — `@ViewBuilder` is required** when the body contains top-level `let`/`var` declarations, `if` expressions, or `switch` expressions.
 
-`var body: some View` is exempt because `View.body` already has an implicit `@ViewBuilder` from the protocol.
+`var body: some View` and `func body(content:) -> some View` are exempt because `View.body` and `ViewModifier.body(content:)` already have an implicit `@ViewBuilder` from their protocol requirements.
 
 ```swift
 // ❌ error — Pattern A
