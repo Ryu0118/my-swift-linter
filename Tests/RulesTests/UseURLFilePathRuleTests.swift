@@ -88,6 +88,23 @@ struct UseURLFilePathRuleTests {
         #expect(fixedSource?.contains("isDirectory") == false)
     }
 
+    @Test("fix preserves earlier multibyte line comments")
+    func fixPreservesEarlierMultibyteLineComment() throws {
+        let source = """
+        enum ShareImageConstants {
+            static let imageSize = CGSize(width: 1080, height: 1240) // 画像の最適サイズ（4:5）
+            static let url = URL(fileURLWithPath: "/tmp/image.png")
+        }
+        """
+        let (diagnostics, fixedSource) = rule.lintAndFix(source: source)
+        let fixed = try #require(fixedSource)
+
+        #expect(diagnostics.count == 1)
+        #expect(fixed.contains("static let imageSize = CGSize(width: 1080, height: 1240) // 画像の最適サイズ（4:5）"))
+        #expect(fixed.contains("URL(filePath: \"/tmp/image.png\")"))
+        #expect(!fixed.contains("height: 12画像"))
+    }
+
     // MARK: - No violations
 
     @Test("no warning on URL(filePath:)")
