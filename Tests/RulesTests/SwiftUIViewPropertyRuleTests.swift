@@ -251,6 +251,32 @@ struct SwiftUIViewPropertyRuleTests {
         #expect(diagnostics.isEmpty)
     }
 
+    @Test("fix preserves earlier multibyte line comments when adding ViewBuilder")
+    func fixPreservesEarlierMultibyteLineComment() throws {
+        let source = """
+        struct ShareImageView: View {
+            static let imageSize = CGSize(width: 1080, height: 1240) // 画像の最適サイズ（4:5）
+
+            private var content: some View {
+                let title = "hello"
+                Text(title)
+            }
+        }
+        """
+        let (diagnostics, fixedSource) = rule.lintAndFix(source: source)
+        let fixed = try #require(fixedSource)
+
+        #expect(diagnostics.contains { $0.isFixable })
+        #expect(fixed.contains("static let imageSize = CGSize(width: 1080, height: 1240) // 画像の最適サイズ（4:5）"))
+        #expect(fixed.contains("private @ViewBuilder var content: some View"))
+        #expect(!fixed.contains("height: 12画像"))
+    }
+}
+
+// Tests for `some View`-returning functions (split into an extension to keep each
+// type body within the type_body_length limit).
+extension SwiftUIViewPropertyRuleTests {
+
     // MARK: - Function: Pattern A (return forbidden)
 
     @Test("error when return is used in some View func without @ViewBuilder")
@@ -403,6 +429,49 @@ struct SwiftUIViewPropertyRuleTests {
                 return base + " world"
             }
             var body: some View { Text(title()) }
+        }
+        """
+        let diagnostics = await rule.lint(source: source)
+        #expect(diagnostics.isEmpty)
+    }
+}
+
+// ViewModifier.body(content:) carries an implicit @ViewBuilder from the protocol,
+// so the rule must not flag top-level if/switch in it (mirrors the View.body exclusion).
+extension SwiftUIViewPropertyRuleTests {
+    @Test("no error for ViewModifier.body(content:) with top-level if — implicit @ViewBuilder")
+    func viewModifierBodyWithIf() async {
+        let source = """
+        struct FooModifier: ViewModifier {
+            let isActive: Bool
+
+            func body(content: Content) -> some View {
+                if isActive {
+                    content.opacity(1)
+                } else {
+                    content
+                }
+            }
+        }
+        """
+        let diagnostics = await rule.lint(source: source)
+        #expect(diagnostics.isEmpty)
+    }
+
+    @Test("no error for ViewModifier.body(content:) with top-level switch — implicit @ViewBuilder")
+    func viewModifierBodyWithSwitch() async {
+        let source = """
+        struct BarModifier: ViewModifier {
+            let level: Int
+
+            func body(content: Content) -> some View {
+                switch level {
+                case 0:
+                    content
+                default:
+                    content.opacity(0.5)
+                }
+            }
         }
         """
         let diagnostics = await rule.lint(source: source)

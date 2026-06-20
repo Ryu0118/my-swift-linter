@@ -22,8 +22,9 @@ import SwiftSyntax
 /// from each branch naturally, and eliminates the need for `return`.
 /// Fix-It: inserts `@ViewBuilder` before the `var` keyword (properties) or `func` keyword (functions).
 ///
-/// **Exception**: `var body: some View` is excluded because `View.body` already has
-/// an implicit `@ViewBuilder` from the protocol requirement.
+/// **Exception**: `var body: some View` and `func body(content:) -> some View` are excluded
+/// because `View.body` and `ViewModifier.body(content:)` already have an implicit
+/// `@ViewBuilder` from their protocol requirements.
 struct SwiftUIViewPropertyArgs: Codable {
     var severity: Severity = .error
 }
@@ -198,10 +199,25 @@ private final class SwiftUIViewPropertyVisitor: SyntaxVisitor {
     }
 
     /// Returns `true` when the function returns `some View` (or `some <X>View`).
+    ///
+    /// `func body(content:)` is excluded because it is the `ViewModifier.body(content:)`
+    /// protocol witness, which already carries an implicit `@ViewBuilder` from the
+    /// protocol requirement (mirrors the `var body` exclusion for `View`).
     private func isSomeViewFunction(_ node: FunctionDeclSyntax) -> Bool {
         guard let returnType = node.signature.returnClause?.type else { return false }
         let typeText = returnType.description.trimmingCharacters(in: .whitespaces)
-        return typeText.hasPrefix("some ") && typeText.contains("View")
+        guard typeText.hasPrefix("some "), typeText.contains("View") else { return false }
+        if isViewModifierBody(node) { return false }
+        return true
+    }
+
+    /// Returns `true` when the function is the `ViewModifier.body(content:)` witness:
+    /// named `body` with a single parameter labeled `content`.
+    private func isViewModifierBody(_ node: FunctionDeclSyntax) -> Bool {
+        guard node.name.text == "body" else { return false }
+        let parameters = node.signature.parameterClause.parameters
+        guard parameters.count == 1, let parameter = parameters.first else { return false }
+        return parameter.firstName.text == "content"
     }
 
     private func hasViewBuilderAttributeOnFunction(_ node: FunctionDeclSyntax) -> Bool {
