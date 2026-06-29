@@ -46,7 +46,7 @@ swift build -c release
 | `use-url-file-path` | error | ✓ | Flags deprecated `URL(fileURLWithPath:)` initializer — use `URL(filePath:)` (iOS 16+ / macOS 13+) instead |
 | `missing-docs` | error | ✓ | Flags declarations missing a doc comment — configurable minimum access level and ignore patterns |
 | `meaningful-suite-description` | error | ✓ | Flags `@Suite` descriptions that are identical to the type name (or the name minus a `Tests`/`Test`/`Spec` suffix) — write a description that explains what the suite tests |
-| `test-function-naming` | error | ✓ | Flags `@Test` functions whose name is a backtick-quoted phrase — use lowerCamelCase and move the description into `@Test("…")` |
+| `test-function-naming` | error | ✓ | Flags `@Test` functions whose name is a backtick-quoted phrase, underscore-separated, or starts with `test` — use lowerCamelCase and move the description into `@Test("…")` |
 
 ### deep-nesting
 
@@ -425,31 +425,44 @@ rules:
 
 ### test-function-naming
 
-`@Test` functions whose name is a backtick-quoted natural-language phrase add no value over a proper `@Test("…")` description string, and make it impossible to call the function directly. Use lowerCamelCase for the function name and put the human-readable description in the `@Test` label.
+`@Test` function names should be lowerCamelCase, with any human-readable description placed in the `@Test("…")` label. This rule flags three naming patterns that obscure intent or are redundant on a `@Test` function:
+
+- **Backtick-quoted phrase** (spaces) — adds no value over a `@Test("…")` description and can't be called directly.
+- **Underscore-separated** — not idiomatic Swift naming.
+- **`test` prefix** (case-insensitive) — redundant, since the function is already marked `@Test`.
 
 ```swift
-// ❌ error
+// ❌ error — backtick-quoted phrase
 @Test
-func `claudeHookOutput blocks when outOfSync with default message`() {}
+func `claudeHookOutput blocks when outOfSync`() {}
 
-// ❌ error — description present but name is still a quoted phrase
-@Test("claudeHookOutput blocks when outOfSync with default message")
-func `claudeHookOutput blocks when outOfSync with default message`() {}
+// ❌ error — underscore-separated
+@Test
+func decode_returnsValue() {}
+
+// ❌ error — starts with "test" (redundant on @Test)
+@Test
+func testClaudeHookOutput() {}
 
 // ✅
-@Test("claudeHookOutput blocks when outOfSync with default message")
-func claudeHookOutputBlocksWhenOutOfSyncWithDefaultMessage() {}
+@Test("claudeHookOutput blocks when outOfSync")
+func claudeHookOutputBlocksWhenOutOfSync() {}
 ```
 
-Backtick-escaped Swift keywords with no spaces (e.g. `` func `default`() ``) are not flagged. No Fix-It is provided because choosing a camelCase name requires human judgement.
+Backtick-escaped Swift keywords with no spaces (e.g. `` func `default`() ``) are not flagged, and `test` only triggers as a prefix (`validateTestInput` is fine). A name matching multiple patterns is reported once. No Fix-It is provided because choosing a camelCase name requires human judgement.
 
 **Configuration**
+
+Each pattern can be toggled independently (all default `true`).
 
 ```yaml
 rules:
   test-function-naming:
     args:
-      severity: warning   # default: error
+      severity: warning        # default: error
+      check_spaces: true        # flag backtick-quoted phrases
+      check_underscores: true   # flag underscore-separated names
+      check_test_prefix: true   # flag names starting with "test"
 ```
 
 ### missing-docs
