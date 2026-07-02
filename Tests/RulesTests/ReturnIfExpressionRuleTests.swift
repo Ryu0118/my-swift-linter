@@ -287,6 +287,30 @@ struct ReturnIfExpressionRuleTests {
         #expect(diagnostics.isEmpty)
     }
 
+    @Test("fix-it inside a closure does not merge the closure's `in` keyword with `return`")
+    func fixIfElseInsideClosure() async throws {
+        let source = """
+        let handler: (Bool) -> String = { x in
+            if x {
+                return "yes"
+            } else {
+                return "no"
+            }
+        }
+        """
+        let (diagnostics, fixed) = await rule.lintAndFix(source: source)
+        #expect(diagnostics.count == 1)
+        let fixedSource = try #require(fixed)
+        // Regression test: the fix must not concatenate the closure's `in` keyword with
+        // the newly inserted `return` keyword (e.g. `in return if` collapsing into
+        // `inreturn if`), which previously produced invalid, uncompilable Swift.
+        #expect(!fixedSource.contains("inreturn"))
+        #expect(
+            fixedSource.contains("in\n")
+                || fixedSource.contains("in return if")
+        )
+    }
+
     @Test("multiple qualifying if/else blocks each produce one error")
     func multipleBlocks() async {
         let source = """

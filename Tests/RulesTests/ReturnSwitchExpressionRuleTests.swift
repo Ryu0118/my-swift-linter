@@ -233,6 +233,31 @@ struct ReturnSwitchExpressionRuleTests {
         #expect(!fixedSource.contains("return 2"))
     }
 
+    @Test("fix-it inside a closure does not merge the closure's `in` keyword with `return`")
+    func fixSwitchInsideClosure() async throws {
+        let source = """
+        let handler: (Action) -> Effect<Action> = { action in
+            switch action {
+            case .first:
+                return .none
+            case .second:
+                return .none
+            }
+        }
+        """
+        let (diagnostics, fixed) = await rule.lintAndFix(source: source)
+        #expect(diagnostics.count == 1)
+        let fixedSource = try #require(fixed)
+        // Regression test: the fix must not concatenate the closure's `in` keyword with
+        // the newly inserted `return` keyword (e.g. `in return switch` collapsing into
+        // `inreturn switch`), which previously produced invalid, uncompilable Swift.
+        #expect(!fixedSource.contains("inreturn"))
+        #expect(
+            fixedSource.contains("in\n")
+                || fixedSource.contains("in return switch action")
+        )
+    }
+
     @Test("multiple qualifying switches each produce one error")
     func multipleSwitches() async {
         let source = """
