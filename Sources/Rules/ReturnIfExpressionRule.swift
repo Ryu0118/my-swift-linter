@@ -68,8 +68,16 @@ private final class ReturnIfExpressionVisitor: SyntaxVisitor {
             guard qualifies(ifExpr) else { continue }
 
             let fixed = buildReturnIfExpr(ifExpr: ifExpr)
+            // `fixed`'s first token (`return`) always has empty leading trivia (see
+            // buildReturnIfExpr), so replacing `item.item` wholesale would silently
+            // discard whatever leading trivia `item` originally carried (e.g. the space
+            // after a closure's `in` keyword, or the newline+indent before a top-level
+            // `if`). Re-attach the original leading trivia explicitly so the token
+            // immediately preceding this item is never concatenated with `return`.
+            let originalLeadingTrivia = item.leadingTrivia
             let fixedItem = item
                 .with(\.item, .stmt(StmtSyntax(fixed)))
+                .with(\.leadingTrivia, originalLeadingTrivia)
 
             context.reportWithFix(
                 on: item,
