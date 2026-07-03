@@ -508,6 +508,12 @@ Each entry in `ignore_patterns` suppresses violations for declarations that matc
 | `kinds` | `[String]` | OR | Declaration kind: `"var"`, `"let"`, `"func"`, `"init"`, `"subscript"`, `"struct"`, `"class"`, `"actor"`, `"enum"`, `"protocol"`, `"typealias"` |
 | `modifiers` | `[String]` | AND | All listed modifiers must be present: `"static"`, `"class"`, `"override"`, `"final"` |
 | `names` | `[String]` | OR | Exact declaration name |
+| `name_pattern` | `String` | regex | Declaration name must match this regular expression (searched anywhere in the name; anchor with `^`/`$` for prefix/suffix matching) |
+
+`names` and `name_pattern` are alternatives for the same "name" filter: if both are given,
+matching either one is sufficient (OR), and the result is then combined with `kinds` /
+`modifiers` as usual (AND). An invalid `name_pattern` regex never matches — it fails safe
+instead of suppressing violations it shouldn't.
 
 ```yaml
 # Suppress doc-comment requirement for TCA DependencyKey boilerplate
@@ -523,6 +529,10 @@ ignore_patterns:
 
 # Suppress for any declaration named "placeholder" (wildcard kinds/modifiers)
   - names: [placeholder]
+
+# Suppress for any struct whose name ends with "Reducer" (e.g. HomeReducer)
+  - kinds: [struct]
+    name_pattern: "Reducer$"
 ```
 
 ## Usage

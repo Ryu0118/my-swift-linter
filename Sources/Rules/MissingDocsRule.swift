@@ -9,6 +9,11 @@ import SwiftSyntax
 /// - `kinds`: OR match — declaration must be one of the listed kinds.
 /// - `modifiers`: AND match — declaration must have ALL listed modifiers.
 /// - `names`: OR match — declaration name must be one of the listed names.
+/// - `namePattern`: regex match — declaration name must match the pattern.
+///   When both `names` and `namePattern` are given, either one matching is
+///   sufficient (they are OR'd together as alternative ways to specify the
+///   name filter); the combined name filter is then AND'd with `kinds` /
+///   `modifiers` as usual.
 struct IgnorePattern: Codable {
     /// Declaration kind: "var", "let", "func", "init", "subscript",
     /// "struct", "class", "actor", "enum", "protocol", "typealias"
@@ -17,14 +22,37 @@ struct IgnorePattern: Codable {
     var modifiers: [String]?
     /// Declaration names to match (exact), e.g. ["liveValue", "previewValue"].
     var names: [String]?
+    /// Regular expression the declaration name must match, e.g. `"Reducer$"`.
+    /// An invalid regex never matches (fails safe: the pattern behaves as if
+    /// `namePattern` were absent for name-matching purposes, so it never
+    /// suppresses a real violation).
+    var namePattern: String?
+
+    enum CodingKeys: String, CodingKey {
+        case kinds
+        case modifiers
+        case names
+        case namePattern = "name_pattern"
+    }
 
     func matches(kind: String, modifiers: Set<String>, name: String) -> Bool {
         if let kinds, !kinds.contains(kind) { return false }
         if let requiredModifiers = self.modifiers, !requiredModifiers.allSatisfy({ modifiers.contains($0) }) {
             return false
         }
-        if let names, !names.contains(name) { return false }
+        if !nameMatches(name) { return false }
         return true
+    }
+
+    /// Evaluates the combined `names` / `namePattern` filter.
+    /// - If neither is set, the name filter is a wildcard (always matches).
+    /// - If only one is set, that one governs.
+    /// - If both are set, matching either is sufficient (OR).
+    private func nameMatches(_ name: String) -> Bool {
+        guard names != nil || namePattern != nil else { return true }
+        if let names, names.contains(name) { return true }
+        if let namePattern, let regex = try? Regex(namePattern), name.contains(regex) { return true }
+        return false
     }
 }
 
