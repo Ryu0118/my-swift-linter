@@ -1,6 +1,10 @@
 import SwiftASTLint
 import SwiftSyntax
 
+struct TestDescriptionMatchesNameArgs: Codable, Sendable {
+    var severity: Severity = .error
+}
+
 /// Detects `@Test` functions and `@Suite` types whose display description does not correspond
 /// to the function/type name.
 ///
@@ -15,15 +19,13 @@ import SwiftSyntax
 /// (after stripping common suffixes like `Tests`, `Test`, `Spec`).  This allows a description
 /// like `"TransactionManager: rollback and commit"` to satisfy a type named
 /// `TransactionManagerTests` while still requiring some relationship to the type name.
+/// For extensions with qualified names (`extension Foo.BarTests`), only the last path
+/// component is compared.
 ///
 /// **Does NOT trigger when:**
 /// - The attribute has no string-literal description argument.
 /// - The description contains string interpolation.
-/// - The description normalises to an empty string.
-struct TestDescriptionMatchesNameArgs: Codable, Sendable {
-    var severity: Severity = .error
-}
-
+/// - The description or the name normalises to an empty string (e.g. fully non-ASCII).
 let testDescriptionMatchesNameRule = ParameterizedRule(
     id: "test-description-matches-name",
     defaultArguments: TestDescriptionMatchesNameArgs(),
@@ -47,17 +49,21 @@ private final class TestDescriptionMatchesNameVisitor: SyntaxVisitor {
     // MARK: @Test — function declarations
 
     override func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
-        guard hasAttribute(node.attributes, named: "Test") else { return .visitChildren }
-        guard let description = extractStringLiteral(from: node.attributes, named: "Test") else {
-            return .visitChildren
+        // @Test/@Suite declarations cannot be nested inside function bodies,
+        // so there is never anything to check below this node.
+        checkTest(node)
+        return .skipChildren
+    }
+
+    private func checkTest(_ node: FunctionDeclSyntax) {
+        guard let description = node.attributes.attribute(named: "Test")?.plainStringArgument else {
+            return
         }
         let normDesc = normalize(description)
-        guard !normDesc.isEmpty else { return .visitChildren }
+        guard !normDesc.isEmpty else { return }
 
         let funcName = node.name.text
-        let normName = normalize(funcName)
-
-        if normDesc != normName {
+        if normDesc != normalize(funcName) {
             context.report(
                 on: node,
                 message: """
@@ -67,7 +73,6 @@ private final class TestDescriptionMatchesNameVisitor: SyntaxVisitor {
                 severity: severity,
             )
         }
-        return .visitChildren
     }
 
     // MARK: @Suite — type declarations
@@ -88,24 +93,31 @@ private final class TestDescriptionMatchesNameVisitor: SyntaxVisitor {
     }
 
     override func visit(_ node: ExtensionDeclSyntax) -> SyntaxVisitorContinueKind {
-        let typeName = node.extendedType.trimmedDescription
-        checkSuite(attributes: node.attributes, typeName: typeName, reportNode: Syntax(node))
+        // Use only the last path component of qualified names ("Foo.BarTests" -> "BarTests").
+        // Computed lazily so extensions without @Suite never pay for the tree print.
+        checkSuite(
+            attributes: node.attributes,
+            typeName: lastPathComponent(of: node.extendedType.trimmedDescription),
+            reportNode: Syntax(node),
+        )
         return .visitChildren
     }
 
     // MARK: - Core logic
 
-    private func checkSuite(attributes: AttributeListSyntax, typeName: String, reportNode: Syntax) {
-        guard hasAttribute(attributes, named: "Suite") else { return }
-        guard let description = extractStringLiteral(from: attributes, named: "Suite") else { return }
+    private func checkSuite(
+        attributes: AttributeListSyntax,
+        typeName: @autoclosure () -> String,
+        reportNode: Syntax,
+    ) {
+        guard let description = attributes.attribute(named: "Suite")?.plainStringArgument else {
+            return
+        }
         let normDesc = normalize(description)
         guard !normDesc.isEmpty else { return }
 
-        // Strip common test-suite suffixes to get the base name, then normalize.
-        // When stripping leaves nothing (type named exactly "Tests"/"Test"/"Spec"),
-        // fall back to the full type name so the comparison stays meaningful.
-        var baseName = strippedTypeName(typeName)
-        if baseName.isEmpty { baseName = typeName }
+        let typeName = typeName()
+        let baseName = strippedTestSuiteName(typeName)
         let normBase = normalize(baseName)
         guard !normBase.isEmpty else { return }
 
@@ -124,60 +136,13 @@ private final class TestDescriptionMatchesNameVisitor: SyntaxVisitor {
 
     // MARK: - Helpers
 
-    /// Returns true when `attributes` contains an attribute with the given simple name.
-    private func hasAttribute(_ attributes: AttributeListSyntax, named name: String) -> Bool {
-        attributes.contains { element in
-            guard case let .attribute(attr) = element else { return false }
-            guard let id = attr.attributeName.as(IdentifierTypeSyntax.self) else { return false }
-            return id.name.text == name
-        }
-    }
-
-    /// Extracts the first plain string-literal argument from the named attribute.
-    /// Returns `nil` for interpolated strings, non-string arguments, or missing arguments.
-    private func extractStringLiteral(from attributes: AttributeListSyntax, named name: String) -> String? {
-        for element in attributes {
-            guard case let .attribute(attr) = element else { continue }
-            guard let id = attr.attributeName.as(IdentifierTypeSyntax.self),
-                  id.name.text == name
-            else { continue }
-            guard case let .argumentList(args) = attr.arguments else { return nil }
-            for arg in args {
-                guard let stringLit = arg.expression.as(StringLiteralExprSyntax.self) else { continue }
-                let segments = stringLit.segments
-                guard segments.count == 1,
-                      let first = segments.first,
-                      case let .stringSegment(seg) = first
-                else { return nil }
-                return seg.content.text
-            }
-            return nil
-        }
-        return nil
-    }
-
-    /// Removes all characters except ASCII letters and digits, then lowercases.
+    /// Keeps only ASCII letters and digits, lowercased. Non-ASCII text normalizes
+    /// to an empty string, which callers treat as "cannot compare — skip".
     private func normalize(_ s: String) -> String {
-        s.unicodeScalars
-            .filter { $0.value < 128 && (isASCIILetter($0.value) || isASCIIDigit($0.value)) }
-            .map { Character($0) }
-            .map { $0.lowercased() }
-            .joined()
+        s.filter { $0.isASCII && ($0.isLetter || $0.isNumber) }.lowercased()
     }
 
-    private func isASCIILetter(_ v: UInt32) -> Bool {
-        (65...90).contains(v) || (97...122).contains(v)
-    }
-
-    private func isASCIIDigit(_ v: UInt32) -> Bool {
-        (48...57).contains(v)
-    }
-
-    /// Returns the type name with common test-suite suffixes stripped.
-    private func strippedTypeName(_ name: String) -> String {
-        for suffix in ["Tests", "Test", "Spec"] where name.hasSuffix(suffix) {
-            return String(name.dropLast(suffix.count))
-        }
-        return name
+    private func lastPathComponent(of qualifiedName: String) -> String {
+        qualifiedName.split(separator: ".").last.map(String.init) ?? qualifiedName
     }
 }

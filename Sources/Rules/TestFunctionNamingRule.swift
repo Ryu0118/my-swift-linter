@@ -81,7 +81,7 @@ private final class TestFunctionNamingVisitor: SyntaxVisitor {
     }
 
     override func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
-        guard hasTestAttribute(node.attributes) else { return .visitChildren }
+        guard node.attributes.attribute(named: "Test") != nil else { return .visitChildren }
         let rawName = node.name.text
 
         // First matching pattern wins, so a name hitting several patterns is reported once.
@@ -108,14 +108,6 @@ private final class TestFunctionNamingVisitor: SyntaxVisitor {
 
     private func report(on node: FunctionDeclSyntax, message: String) {
         context.report(on: node, message: message, severity: args.severity)
-    }
-
-    private func hasTestAttribute(_ attributes: AttributeListSyntax) -> Bool {
-        attributes.contains { element in
-            guard case let .attribute(attr) = element else { return false }
-            guard let name = attr.attributeName.as(IdentifierTypeSyntax.self) else { return false }
-            return name.name.text == "Test"
-        }
     }
 
     /// Returns true when the name begins with `test` (case-insensitive), regardless of what follows.

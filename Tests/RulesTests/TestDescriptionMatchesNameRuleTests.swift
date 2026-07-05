@@ -100,23 +100,9 @@ struct TestDescriptionMatchesNameRuleTests {
 
     // MARK: - No violations (@Test) — must NOT fire
 
-    @Test("no error for motivating example: re-applied with hyphen normalized")
-    func motivatingExample() {
-        // "A re-applied transaction can be rolled back again"
-        // and "aReappliedTransactionCanBeRolledBackAgain" both normalize to
-        // "areappliedtransactioncanberolledbackagain" — match.
-        let source = """
-        import Testing
-        struct MyTests {
-            @Test("A re-applied transaction can be rolled back again")
-            func aReappliedTransactionCanBeRolledBackAgain() async throws {}
-        }
-        """
-        let diagnostics = rule.lint(source: source)
-        #expect(diagnostics.isEmpty)
-    }
-
     @Test("no error for matching pairs", arguments: [
+        // The motivating example: hyphen in "re-applied" normalizes away on both sides.
+        ("A re-applied transaction can be rolled back again", "aReappliedTransactionCanBeRolledBackAgain"),
         ("claudeHookOutput blocks when outOfSync", "claudeHookOutputBlocksWhenOutOfSync"),
         ("user's data is fetched", "userSDataIsFetched"),
         ("test 3 cases are handled", "test3CasesAreHandled"),
@@ -232,7 +218,7 @@ struct TestDescriptionMatchesNameRuleTests {
 
     // MARK: - Violations (@Suite)
 
-    @Test("error when @Suite description is unrelated to type name")
+    @Test("error when @Suite description is unrelated to type name, with both names in the message")
     func suiteDescriptionUnrelatedToTypeName() {
         let source = """
         import Testing
@@ -242,17 +228,6 @@ struct TestDescriptionMatchesNameRuleTests {
         let diagnostics = rule.lint(source: source)
         #expect(diagnostics.count == 1)
         #expect(diagnostics[0].severity == .error)
-    }
-
-    @Test("error message for @Suite includes description and type name")
-    func suiteErrorMessageContent() {
-        let source = """
-        import Testing
-        @Suite("completely unrelated description")
-        struct TransactionManagerTests {}
-        """
-        let diagnostics = rule.lint(source: source)
-        #expect(diagnostics.count == 1)
         #expect(diagnostics[0].message.contains("completely unrelated description"))
         #expect(diagnostics[0].message.contains("TransactionManagerTests"))
     }
@@ -299,6 +274,18 @@ struct TestDescriptionMatchesNameRuleTests {
     }
 
     // MARK: - No violations (@Suite)
+
+    @Test("no error when @Suite extension has qualified type name and description names the last component")
+    func suiteExtensionQualifiedName() {
+        // "Foo.BarTests" must compare against "Bar", not "FooBar".
+        let source = """
+        import Testing
+        @Suite("Bar: integration scenarios")
+        extension Foo.BarTests {}
+        """
+        let diagnostics = rule.lint(source: source)
+        #expect(diagnostics.isEmpty)
+    }
 
     @Test("no error when @Suite description contains the type name (minus Tests suffix)")
     func suiteDescriptionContainsTypeName() {
