@@ -66,48 +66,28 @@ private final class MeaningfulSuiteDescriptionVisitor: SyntaxVisitor {
         typeName: String,
         reportNode: Syntax,
     ) {
-        for attribute in attributes {
-            guard case let .attribute(attr) = attribute else { continue }
-            guard let name = attr.attributeName.as(IdentifierTypeSyntax.self),
-                  name.name.text == "Suite"
-            else { continue }
-            guard let description = extractStringLiteral(from: attr) else { continue }
-            guard isRedundant(description: description, typeName: typeName) else { continue }
-
-            context.report(
-                on: reportNode,
-                message: """
-                @Suite description "\(description)" is identical to the type name and provides no value. \
-                Describe what this suite tests instead, e.g. "@Suite(\\"meaningful-suite-description: detects …\\")".
-                """,
-                severity: severity,
-            )
+        guard let description = attributes.attribute(named: "Suite")?.plainStringArgument else {
+            return
         }
-    }
+        guard isRedundant(description: description, typeName: typeName) else { return }
 
-    /// Returns the plain string value if the first string-literal argument has no interpolation,
-    /// otherwise returns `nil`.
-    private func extractStringLiteral(from attribute: AttributeSyntax) -> String? {
-        guard case let .argumentList(args) = attribute.arguments else { return nil }
-        for arg in args {
-            guard let stringLit = arg.expression.as(StringLiteralExprSyntax.self) else { continue }
-            // Only handle single-segment plain strings — skip interpolated ones
-            let segments = stringLit.segments
-            guard segments.count == 1,
-                  let first = segments.first,
-                  case let .stringSegment(seg) = first
-            else { return nil }
-            return seg.content.text
-        }
-        return nil
+        context.report(
+            on: reportNode,
+            message: """
+            @Suite description "\(description)" is identical to the type name and provides no value. \
+            Describe what this suite tests instead, e.g. "@Suite(\\"meaningful-suite-description: detects …\\")".
+            """,
+            severity: severity,
+        )
     }
 
     /// Returns true when the description is trivially derived from the type name.
     private func isRedundant(description: String, typeName: String) -> Bool {
         // Collect the type name and its de-suffixed variants to check against
         var candidates = [typeName]
-        for suffix in ["Tests", "Test", "Spec"] where typeName.hasSuffix(suffix) {
-            candidates.append(String(typeName.dropLast(suffix.count)))
+        let stripped = strippedTestSuiteName(typeName)
+        if stripped != typeName {
+            candidates.append(stripped)
         }
 
         let separators = [" \u{2014} ", " \u{2013} ", " - ", ": "]

@@ -47,6 +47,7 @@ swift build -c release
 | `missing-docs` | error | ✓ | Flags declarations missing a doc comment — configurable minimum access level and ignore patterns |
 | `meaningful-suite-description` | error | ✓ | Flags `@Suite` descriptions that are identical to the type name (or the name minus a `Tests`/`Test`/`Spec` suffix) — write a description that explains what the suite tests |
 | `test-function-naming` | error | ✓ | Flags `@Test` functions whose name is a backtick-quoted phrase, underscore-separated, or starts with `test` — use lowerCamelCase and move the description into `@Test("…")` |
+| `test-description-matches-name` | error | ✓ | Flags `@Test`/`@Suite` descriptions that do not correspond to the function/type name — the description must be the natural-language form of the name |
 
 ### deep-nesting
 
@@ -463,6 +464,44 @@ rules:
       check_spaces: true        # flag backtick-quoted phrases
       check_underscores: true   # flag underscore-separated names
       check_test_prefix: true   # flag names starting with "test"
+```
+
+### test-description-matches-name
+
+A `@Test("…")` description that doesn't match its function name (or a `@Suite("…")` description unrelated to its type name) misleads readers and test reports. This rule verifies the correspondence.
+
+Both sides are normalized before comparing — everything except ASCII letters and digits is removed and the result is lowercased — so punctuation (`re-applied` vs `reapplied`) and camelCase boundaries don't require an exact derivation.
+
+- **`@Test`**: the normalized description must **equal** the normalized function name.
+- **`@Suite`**: the normalized description must **contain** the normalized type name after stripping a `Tests`/`Test`/`Spec` suffix. For qualified extension names (`extension Foo.BarTests`), only the last path component is compared.
+
+```swift
+// ❌ error — description has nothing to do with the function name
+@Test("user can log in")
+func fetchData() {}
+
+// ✅ — punctuation and camelCase boundaries normalize away
+@Test("A re-applied transaction can be rolled back again")
+func aReappliedTransactionCanBeRolledBackAgain() async throws {}
+
+// ❌ error — description unrelated to the type name
+@Suite("completely unrelated description")
+struct TransactionManagerTests {}
+
+// ✅ — description contains the suite base name
+@Suite("TransactionManager: rollback and commit behavior")
+struct TransactionManagerTests {}
+```
+
+Not flagged: bare attributes (`@Test`), trait-only attributes (`@Test(.serialized)`), interpolated descriptions, and descriptions or names that normalize to an empty string (e.g. fully non-ASCII text). No Fix-It is provided — renaming requires human judgement.
+
+**Configuration**
+
+```yaml
+rules:
+  test-description-matches-name:
+    args:
+      severity: warning   # default: error
 ```
 
 ### missing-docs

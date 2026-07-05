@@ -15,5 +15,6 @@ public let rules = RuleSet {
     useURLFilePathRule
     meaningfulSuiteDescriptionRule
     testFunctionNamingRule
+    testDescriptionMatchesNameRule
     missingDocsRule
 }
