@@ -13,22 +13,26 @@ struct TestDescriptionMatchesNameRuleTests {
 
     // MARK: - Violations (@Test)
 
-    @Test("error when @Test description and func name are unrelated")
-    func unrelatedDescriptionAndName() async {
+    @Test("error for mismatched @Test description and func name", arguments: [
+        ("user can log in", "fetchData"),
+        ("returns nil value", "computeSum"),
+        ("back rolled be can transaction applied re a", "aReappliedTransactionCanBeRolledBackAgain"),
+    ])
+    func mismatchedDescriptionAndName(description: String, funcName: String) {
         let source = """
         import Testing
         struct MyTests {
-            @Test("user can log in")
-            func fetchData() {}
+            @Test("\(description)")
+            func \(funcName)() {}
         }
         """
-        let diagnostics = await rule.lint(source: source)
+        let diagnostics = rule.lint(source: source)
         #expect(diagnostics.count == 1)
         #expect(diagnostics[0].severity == .error)
     }
 
     @Test("error message includes both description and func name")
-    func errorMessageContainsDescriptionAndName() async {
+    func errorMessageContainsDescriptionAndName() {
         let source = """
         import Testing
         struct MyTests {
@@ -36,27 +40,14 @@ struct TestDescriptionMatchesNameRuleTests {
             func fetchData() {}
         }
         """
-        let diagnostics = await rule.lint(source: source)
+        let diagnostics = rule.lint(source: source)
         #expect(diagnostics.count == 1)
         #expect(diagnostics[0].message.contains("user can log in"))
         #expect(diagnostics[0].message.contains("fetchData"))
     }
 
-    @Test("error when @Test description words are completely reordered")
-    func reorderedWords() async {
-        let source = """
-        import Testing
-        struct MyTests {
-            @Test("back rolled be can transaction applied re a")
-            func aReappliedTransactionCanBeRolledBackAgain() {}
-        }
-        """
-        let diagnostics = await rule.lint(source: source)
-        #expect(diagnostics.count == 1)
-    }
-
     @Test("multiple mismatched @Test functions each produce an error")
-    func multipleViolations() async {
+    func multipleViolations() {
         let source = """
         import Testing
         struct MyTests {
@@ -66,29 +57,54 @@ struct TestDescriptionMatchesNameRuleTests {
             func computeSum() {}
         }
         """
-        let diagnostics = await rule.lint(source: source)
+        let diagnostics = rule.lint(source: source)
         #expect(diagnostics.count == 2)
     }
 
     @Test("error when @Test at file scope has mismatched description")
-    func topLevelMismatch() async {
+    func topLevelMismatch() {
         let source = """
         import Testing
         @Test("user can log in")
         func fetchData() {}
         """
-        let diagnostics = await rule.lint(source: source)
+        let diagnostics = rule.lint(source: source)
+        #expect(diagnostics.count == 1)
+    }
+
+    @Test("error when description string comes after a trait argument")
+    func descriptionAfterTraitArgument() {
+        let source = """
+        import Testing
+        struct MyTests {
+            @Test(.serialized, "user can log in")
+            func fetchData() {}
+        }
+        """
+        let diagnostics = rule.lint(source: source)
+        #expect(diagnostics.count == 1)
+    }
+
+    @Test("error when @Test description matches but is on a parameterized test with wrong name")
+    func parameterizedTestMismatch() {
+        let source = """
+        import Testing
+        struct MyTests {
+            @Test("user can log in", arguments: [1, 2, 3])
+            func fetchData(_ value: Int) {}
+        }
+        """
+        let diagnostics = rule.lint(source: source)
         #expect(diagnostics.count == 1)
     }
 
     // MARK: - No violations (@Test) — must NOT fire
 
     @Test("no error for motivating example: re-applied with hyphen normalized")
-    func motivatingExample() async {
-        // The description "A re-applied transaction can be rolled back again"
-        // normalizes to "areappliedtransactioncanberolledbackagain"
-        // The func name "aReappliedTransactionCanBeRolledBackAgain"
-        // normalizes to "areappliedtransactioncanberolledbackagain" — match!
+    func motivatingExample() {
+        // "A re-applied transaction can be rolled back again"
+        // and "aReappliedTransactionCanBeRolledBackAgain" both normalize to
+        // "areappliedtransactioncanberolledbackagain" — match.
         let source = """
         import Testing
         struct MyTests {
@@ -96,40 +112,42 @@ struct TestDescriptionMatchesNameRuleTests {
             func aReappliedTransactionCanBeRolledBackAgain() async throws {}
         }
         """
-        let diagnostics = await rule.lint(source: source)
+        let diagnostics = rule.lint(source: source)
         #expect(diagnostics.isEmpty)
     }
 
-    @Test("no error when description and func name match (camelCase)")
-    func matchingDescriptionAndName() async {
+    @Test("no error for matching pairs", arguments: [
+        ("claudeHookOutput blocks when outOfSync", "claudeHookOutputBlocksWhenOutOfSync"),
+        ("user's data is fetched", "userSDataIsFetched"),
+        ("test 3 cases are handled", "test3CasesAreHandled"),
+    ])
+    func matchingPairs(description: String, funcName: String) {
         let source = """
         import Testing
         struct MyTests {
-            @Test("claudeHookOutput blocks when outOfSync")
-            func claudeHookOutputBlocksWhenOutOfSync() {}
+            @Test("\(description)")
+            func \(funcName)() {}
         }
         """
-        let diagnostics = await rule.lint(source: source)
+        let diagnostics = rule.lint(source: source)
         #expect(diagnostics.isEmpty)
     }
 
-    @Test("no error when description uses apostrophe as punctuation")
-    func apostropheInDescription() async {
-        // "user's data is fetched" -> "usersdataisfetched"
-        // "userSDataIsFetched" -> "usersdataisfetched"
+    @Test("no error on matching parameterized test with arguments label")
+    func parameterizedTestMatch() {
         let source = """
         import Testing
         struct MyTests {
-            @Test("user's data is fetched")
-            func userSDataIsFetched() {}
+            @Test("handles all edge cases", arguments: [1, 2, 3])
+            func handlesAllEdgeCases(_ value: Int) {}
         }
         """
-        let diagnostics = await rule.lint(source: source)
+        let diagnostics = rule.lint(source: source)
         #expect(diagnostics.isEmpty)
     }
 
     @Test("no error when @Test has no string description (bare attribute)")
-    func noDescription() async {
+    func noDescription() {
         let source = """
         import Testing
         struct MyTests {
@@ -137,12 +155,12 @@ struct TestDescriptionMatchesNameRuleTests {
             func fetchData() {}
         }
         """
-        let diagnostics = await rule.lint(source: source)
+        let diagnostics = rule.lint(source: source)
         #expect(diagnostics.isEmpty)
     }
 
     @Test("no error when @Test has only trait arguments and no string description")
-    func traitOnlyNoDescription() async {
+    func traitOnlyNoDescription() {
         let source = """
         import Testing
         struct MyTests {
@@ -150,12 +168,12 @@ struct TestDescriptionMatchesNameRuleTests {
             func fetchData() {}
         }
         """
-        let diagnostics = await rule.lint(source: source)
+        let diagnostics = rule.lint(source: source)
         #expect(diagnostics.isEmpty)
     }
 
     @Test("no error when @Test description contains interpolation")
-    func interpolatedDescription() async {
+    func interpolatedDescription() {
         let source = """
         import Testing
         struct MyTests {
@@ -163,42 +181,44 @@ struct TestDescriptionMatchesNameRuleTests {
             func fetchData() {}
         }
         """
-        let diagnostics = await rule.lint(source: source)
+        let diagnostics = rule.lint(source: source)
         #expect(diagnostics.isEmpty)
     }
 
-    @Test("no error when description contains numbers matching func name")
-    func numberInDescriptionAndName() async {
+    @Test("no error when description is entirely non-ASCII (normalizes to empty, skipped)")
+    func nonASCIIDescriptionSkipped() {
+        // Japanese descriptions normalize to an empty string; the rule cannot
+        // meaningfully compare them, so it must skip rather than flag.
         let source = """
         import Testing
         struct MyTests {
-            @Test("test 3 cases are handled")
-            func test3CasesAreHandled() {}
+            @Test("ログインできる")
+            func fetchData() {}
         }
         """
-        let diagnostics = await rule.lint(source: source)
+        let diagnostics = rule.lint(source: source)
         #expect(diagnostics.isEmpty)
     }
 
     @Test("non-test function with similar description is ignored")
-    func nonTestFunctionIgnored() async {
+    func nonTestFunctionIgnored() {
         let source = """
         struct MyType {
             func fetchData() {}
         }
         """
-        let diagnostics = await rule.lint(source: source)
+        let diagnostics = rule.lint(source: source)
         #expect(diagnostics.isEmpty)
     }
 
     @Test("empty file produces no diagnostics")
-    func emptyFile() async {
-        let diagnostics = await rule.lint(source: "")
+    func emptyFile() {
+        let diagnostics = rule.lint(source: "")
         #expect(diagnostics.isEmpty)
     }
 
     @Test("empty string description is skipped without error")
-    func emptyStringDescription() async {
+    func emptyStringDescription() {
         let source = """
         import Testing
         struct MyTests {
@@ -206,91 +226,154 @@ struct TestDescriptionMatchesNameRuleTests {
             func fetchData() {}
         }
         """
-        let diagnostics = await rule.lint(source: source)
+        let diagnostics = rule.lint(source: source)
         #expect(diagnostics.isEmpty)
     }
 
     // MARK: - Violations (@Suite)
 
     @Test("error when @Suite description is unrelated to type name")
-    func suiteDescriptionUnrelatedToTypeName() async {
+    func suiteDescriptionUnrelatedToTypeName() {
         let source = """
         import Testing
         @Suite("completely unrelated description")
         struct TransactionManagerTests {}
         """
-        let diagnostics = await rule.lint(source: source)
+        let diagnostics = rule.lint(source: source)
         #expect(diagnostics.count == 1)
         #expect(diagnostics[0].severity == .error)
     }
 
     @Test("error message for @Suite includes description and type name")
-    func suiteErrorMessageContent() async {
+    func suiteErrorMessageContent() {
         let source = """
         import Testing
         @Suite("completely unrelated description")
         struct TransactionManagerTests {}
         """
-        let diagnostics = await rule.lint(source: source)
+        let diagnostics = rule.lint(source: source)
         #expect(diagnostics.count == 1)
         #expect(diagnostics[0].message.contains("completely unrelated description"))
         #expect(diagnostics[0].message.contains("TransactionManagerTests"))
     }
 
+    @Test("error when type is named exactly 'Tests' and description is unrelated")
+    func bareTestsTypeNameStillChecked() {
+        // Stripping the "Tests" suffix leaves an empty base name; the rule must
+        // fall back to the full type name instead of matching everything via
+        // contains("") == true.
+        let source = """
+        import Testing
+        @Suite("completely unrelated description")
+        struct Tests {}
+        """
+        let diagnostics = rule.lint(source: source)
+        #expect(diagnostics.count == 1)
+    }
+
+    @Test("error when nested @Suite type has unrelated description")
+    func nestedSuiteMismatch() {
+        let source = """
+        import Testing
+        struct OuterTests {
+            @Suite("completely unrelated")
+            struct InnerTests {}
+        }
+        """
+        let diagnostics = rule.lint(source: source)
+        #expect(diagnostics.count == 1)
+    }
+
+    @Test("@Suite and @Test mismatches in the same type each produce an error")
+    func suiteAndTestBothMismatch() {
+        let source = """
+        import Testing
+        @Suite("completely unrelated")
+        struct TransactionManagerTests {
+            @Test("also unrelated")
+            func fetchData() {}
+        }
+        """
+        let diagnostics = rule.lint(source: source)
+        #expect(diagnostics.count == 2)
+    }
+
     // MARK: - No violations (@Suite)
 
     @Test("no error when @Suite description contains the type name (minus Tests suffix)")
-    func suiteDescriptionContainsTypeName() async {
+    func suiteDescriptionContainsTypeName() {
         let source = """
         import Testing
         @Suite("TransactionManager: rollback and commit behavior")
         struct TransactionManagerTests {}
         """
-        let diagnostics = await rule.lint(source: source)
+        let diagnostics = rule.lint(source: source)
         #expect(diagnostics.isEmpty)
     }
 
     @Test("no error when @Suite description normalizes to match type name")
-    func suiteDescriptionNormalizesToTypeName() async {
+    func suiteDescriptionNormalizesToTypeName() {
         let source = """
         import Testing
         @Suite("transaction manager")
         struct TransactionManagerTests {}
         """
-        let diagnostics = await rule.lint(source: source)
+        let diagnostics = rule.lint(source: source)
+        #expect(diagnostics.isEmpty)
+    }
+
+    @Test("no error when type named 'Tests' has description containing 'Tests'")
+    func bareTestsTypeNameWithMatchingDescription() {
+        let source = """
+        import Testing
+        @Suite("Tests: shared linter fixtures")
+        struct Tests {}
+        """
+        let diagnostics = rule.lint(source: source)
         #expect(diagnostics.isEmpty)
     }
 
     @Test("no error when @Suite has no description argument")
-    func suiteNoDescription() async {
+    func suiteNoDescription() {
         let source = """
         import Testing
         @Suite
         struct TransactionManagerTests {}
         """
-        let diagnostics = await rule.lint(source: source)
+        let diagnostics = rule.lint(source: source)
         #expect(diagnostics.isEmpty)
     }
 
     @Test("no error when @Suite has only trait arguments")
-    func suiteTraitOnly() async {
+    func suiteTraitOnly() {
         let source = """
         import Testing
         @Suite(.serialized)
         struct TransactionManagerTests {}
         """
-        let diagnostics = await rule.lint(source: source)
+        let diagnostics = rule.lint(source: source)
         #expect(diagnostics.isEmpty)
     }
 
     @Test("no error when @Suite description contains interpolation")
-    func suiteInterpolatedDescription() async {
+    func suiteInterpolatedDescription() {
         let source = """
         import Testing
         @Suite("TransactionManager \\(version)")
         struct TransactionManagerTests {}
         """
-        let diagnostics = await rule.lint(source: source)
+        let diagnostics = rule.lint(source: source)
+        #expect(diagnostics.isEmpty)
+    }
+
+    @Test("no error when @Suite description is entirely non-ASCII (skipped)")
+    func suiteNonASCIIDescriptionSkipped() {
+        let source = """
+        import Testing
+        @Suite("トランザクション管理のテスト")
+        struct TransactionManagerTests {}
+        """
+        let diagnostics = rule.lint(source: source)
         #expect(diagnostics.isEmpty)
     }
 }

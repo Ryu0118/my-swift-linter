@@ -102,8 +102,12 @@ private final class TestDescriptionMatchesNameVisitor: SyntaxVisitor {
         guard !normDesc.isEmpty else { return }
 
         // Strip common test-suite suffixes to get the base name, then normalize.
-        let baseName = strippedTypeName(typeName)
+        // When stripping leaves nothing (type named exactly "Tests"/"Test"/"Spec"),
+        // fall back to the full type name so the comparison stays meaningful.
+        var baseName = strippedTypeName(typeName)
+        if baseName.isEmpty { baseName = typeName }
         let normBase = normalize(baseName)
+        guard !normBase.isEmpty else { return }
 
         if !normDesc.contains(normBase) {
             context.report(
