@@ -100,7 +100,10 @@ private final class SwiftUIViewPropertyVisitor: SyntaxVisitor {
     private func checkViewBuilderRequired(for node: VariableDeclSyntax, statements: CodeBlockItemListSyntax) {
         guard needsViewBuilder(statements) else { return }
 
-        let varKeyword = node.bindingSpecifier
+        // Insert `@ViewBuilder` before the declaration's first token (including modifiers like
+        // `private`), not before `var` itself — inserting at `bindingSpecifier` would produce
+        // `private @ViewBuilder var`, which is invalid Swift (attribute must precede modifiers).
+        let firstToken = node.modifiers.first?.name ?? node.bindingSpecifier
         context.reportWithFix(
             on: node,
             message: "Add `@ViewBuilder` when a `some View` computed property uses "
@@ -109,10 +112,10 @@ private final class SwiftUIViewPropertyVisitor: SyntaxVisitor {
             fixIts: [
                 FixIt.replace(
                     message: SimpleFixItMessage("Add `@ViewBuilder`"),
-                    oldNode: varKeyword,
-                    newNode: varKeyword.with(
+                    oldNode: firstToken,
+                    newNode: firstToken.with(
                         \.leadingTrivia,
-                        varKeyword.leadingTrivia + [.unexpectedText("@ViewBuilder ")],
+                        firstToken.leadingTrivia + viewBuilderPrefix(precedingIndent: firstToken.leadingTrivia),
                     ),
                 ),
             ],
@@ -125,7 +128,10 @@ private final class SwiftUIViewPropertyVisitor: SyntaxVisitor {
     ) {
         guard needsViewBuilder(statements) else { return }
 
-        let funcKeyword = node.funcKeyword
+        // Same rationale as the property case above: insert before the first token of the
+        // declaration (modifiers included), not before `func` — `private @ViewBuilder func`
+        // is invalid Swift.
+        let firstToken = node.modifiers.first?.name ?? node.funcKeyword
         context.reportWithFix(
             on: node,
             message: "Add `@ViewBuilder` when a `some View` function uses "
@@ -134,14 +140,23 @@ private final class SwiftUIViewPropertyVisitor: SyntaxVisitor {
             fixIts: [
                 FixIt.replace(
                     message: SimpleFixItMessage("Add `@ViewBuilder`"),
-                    oldNode: funcKeyword,
-                    newNode: funcKeyword.with(
+                    oldNode: firstToken,
+                    newNode: firstToken.with(
                         \.leadingTrivia,
-                        funcKeyword.leadingTrivia + [.unexpectedText("@ViewBuilder ")],
+                        firstToken.leadingTrivia + viewBuilderPrefix(precedingIndent: firstToken.leadingTrivia),
                     ),
                 ),
             ],
         )
+    }
+
+    /// Builds the trivia to append after the declaration's existing leading trivia (which already
+    /// carries the newline/indent from the previous line): `@ViewBuilder`, then a newline, then
+    /// the same indentation the declaration already has — so the original modifier/keyword that
+    /// follows lands correctly indented on its own line below `@ViewBuilder`.
+    private func viewBuilderPrefix(precedingIndent: Trivia) -> Trivia {
+        let indent = precedingIndent.pieces.last(where: { $0.isSpaceOrTab }).map { Trivia(pieces: [$0]) } ?? []
+        return Trivia(pieces: [.unexpectedText("@ViewBuilder")]) + .newlines(1) + indent
     }
 
     private func needsViewBuilder(_ statements: CodeBlockItemListSyntax) -> Bool {
