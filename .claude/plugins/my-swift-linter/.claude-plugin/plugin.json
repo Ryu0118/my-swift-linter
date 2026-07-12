@@ -1,6 +1,6 @@
 {
   "name": "my-swift-linter",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "description": "my-swift-linter CLI and rule configuration guide for AI agents and humans.",
   "author": {
     "name": "Ryu0118"
