@@ -1,0 +1,20 @@
+{
+  "name": "my-swift-linter",
+  "interface": {
+    "displayName": "my-swift-linter"
+  },
+  "plugins": [
+    {
+      "name": "my-swift-linter",
+      "source": {
+        "source": "local",
+        "path": "./plugins/my-swift-linter"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
