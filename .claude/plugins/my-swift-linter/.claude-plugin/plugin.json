@@ -1,0 +1,12 @@
+{
+  "name": "my-swift-linter",
+  "version": "0.12.0",
+  "description": "my-swift-linter CLI and rule configuration guide for AI agents and humans.",
+  "author": {
+    "name": "Ryu0118"
+  },
+  "homepage": "https://github.com/Ryu0118/my-swift-linter",
+  "repository": "https://github.com/Ryu0118/my-swift-linter",
+  "license": "MIT",
+  "keywords": ["swift", "lint", "swift-ast-lint", "agent"]
+}

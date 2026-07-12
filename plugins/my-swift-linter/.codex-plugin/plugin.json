@@ -1,0 +1,33 @@
+{
+  "name": "my-swift-linter",
+  "version": "0.12.0",
+  "description": "my-swift-linter CLI and rule configuration guide for AI agents and humans.",
+  "author": {
+    "name": "Ryu0118"
+  },
+  "homepage": "https://github.com/Ryu0118/my-swift-linter",
+  "repository": "https://github.com/Ryu0118/my-swift-linter",
+  "license": "MIT",
+  "keywords": [
+    "swift",
+    "lint",
+    "swift-ast-lint",
+    "agent"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "my-swift-linter",
+    "shortDescription": "Run and configure my-swift-linter from Codex.",
+    "longDescription": "my-swift-linter provides Codex with CLI usage guidance, .swift-ast-lint.yml setup, rule explanations, and fix workflows.",
+    "developerName": "Ryu0118",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive"
+    ],
+    "defaultPrompt": [
+      "Run my-swift-linter and fix violations.",
+      "Set up .swift-ast-lint.yml for this project.",
+      "Explain this my-swift-linter violation."
+    ]
+  }
+}

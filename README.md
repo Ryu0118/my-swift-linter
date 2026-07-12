@@ -20,6 +20,71 @@ nest install Ryu0118/my-swift-linter
 mise use -g ubi:Ryu0118/my-swift-linter
 ```
 
+### Agent skills / plugins
+
+These commands install the agent skill/plugin metadata, not the `my-swift-linter`
+binary. Install the binary separately with `curl`, Nest, mise, or from source.
+
+#### Claude Code
+
+```sh
+/plugin marketplace add Ryu0118/my-swift-linter
+/plugin install my-swift-linter@my-swift-linter
+```
+
+#### Codex
+
+Add the marketplace, then install the plugin:
+
+```sh
+codex plugin marketplace add Ryu0118/my-swift-linter
+codex plugin add my-swift-linter@my-swift-linter
+```
+
+To develop against a local clone instead, point the marketplace at the checkout:
+
+```sh
+git clone https://github.com/Ryu0118/my-swift-linter
+codex plugin marketplace add ./my-swift-linter
+codex plugin add my-swift-linter@my-swift-linter
+```
+
+#### APM (Agent Package Manager)
+
+With [APM](https://github.com/microsoft/apm), one command installs the skill
+into any supported harness (Claude Code, Copilot, Cursor, Codex, and more) and
+pins it in `apm.lock.yaml`:
+
+```sh
+apm install Ryu0118/my-swift-linter
+```
+
+#### GitHub CLI (`gh skill`)
+
+[GitHub CLI v2.90.0+](https://github.blog/changelog/2026-04-16-manage-agent-skills-with-github-cli/)
+ships a `gh skill` command (alias: `gh skills`). It pins to the latest release
+tag and records provenance (repo, ref, tree SHA) in the installed SKILL.md:
+
+```sh
+gh skill install Ryu0118/my-swift-linter my-swift-linter-guide --agent claude-code
+```
+
+Run `gh skill install Ryu0118/my-swift-linter` without a skill name for
+interactive selection, and use `--agent` / `--scope` to control where skills
+land.
+
+#### skills CLI (`npx skills`)
+
+The [skills CLI](https://github.com/vercel-labs/skills) installs into the
+shared `.agents/skills/` directory used by many agents:
+
+```sh
+npx skills add Ryu0118/my-swift-linter --all
+```
+
+Use `--list` to inspect available skills first, or `-a claude-code` to target
+a specific agent.
+
 ### Build from source
 
 Requires Swift 6.2+ and macOS 15+.
@@ -579,13 +644,19 @@ ignore_patterns:
 ### Run the linter
 
 ```bash
-swift run --package-path /path/to/my-swift-linter swift-ast-lint /path/to/your/Sources
+my-swift-linter /path/to/your/Sources
+```
+
+From a source checkout:
+
+```bash
+swift run --package-path /path/to/my-swift-linter my-swift-linter /path/to/your/Sources
 ```
 
 ### Apply auto-fixes
 
 ```bash
-swift run --package-path /path/to/my-swift-linter swift-ast-lint /path/to/your/Sources --fix
+my-swift-linter /path/to/your/Sources --fix
 ```
 
 ### Configure via YAML
