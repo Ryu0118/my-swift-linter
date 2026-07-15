@@ -17,7 +17,7 @@ nest install Ryu0118/my-swift-linter
 ### Mise ([jdx/mise](https://github.com/jdx/mise))
 
 ```bash
-mise use -g ubi:Ryu0118/my-swift-linter
+mise use -g github:Ryu0118/my-swift-linter
 ```
 
 ### Agent skills / plugins
