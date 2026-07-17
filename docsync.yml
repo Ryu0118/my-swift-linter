@@ -6,7 +6,7 @@ rules:
   doc: README.md
   message: A rule implementation changed — update README if the rule ID, severity,
     configuration keys, or code examples changed.
-  checksum: 0e050ad0e0bb1f7e25fbac67bd0f15ece4358e65b69a0749c7b0ca5e696455d7
+  checksum: d25b464227c28c8a31ac0ae3f79691aa305819ec7300507a698efb3e951e6c29
 - name: readme-cli
   sources:
   - Sources/my-swift-linter/main.swift
@@ -21,7 +21,7 @@ rules:
   doc: skills/my-swift-linter-guide/references/rules.md
   message: A rule implementation changed — update the my-swift-linter skill rule catalog
     if the rule ID, severity, configuration keys, fix support, or behavior changed.
-  checksum: 0e050ad0e0bb1f7e25fbac67bd0f15ece4358e65b69a0749c7b0ca5e696455d7
+  checksum: d25b464227c28c8a31ac0ae3f79691aa305819ec7300507a698efb3e951e6c29
 - name: skill-guide-cli
   sources:
   - Sources/my-swift-linter/main.swift
