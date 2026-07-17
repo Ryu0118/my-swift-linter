@@ -1,0 +1,17 @@
+# APM (Microsoft Agent Package Manager) producer manifest.
+# Lets consumers install my-swift-linter's skill with a single command:
+#   apm install Ryu0118/my-swift-linter
+# Skill sources live in skills/ (single source of truth, shared with the
+# Claude Code plugin); .apm/skills/ contains symlinks to them.
+# version tracks the CLI release version; publish-release.yml bumps it automatically.
+name: my-swift-linter
+version: 0.12.1
+description: my-swift-linter CLI and rule configuration guide for AI agents.
+author: Ryu0118
+license: MIT
+dependencies:
+  apm: []
+  mcp: []
+includes:
+  - .apm/skills/my-swift-linter-guide/
+scripts: {}

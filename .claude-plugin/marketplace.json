@@ -1,0 +1,17 @@
+{
+  "name": "my-swift-linter",
+  "owner": {
+    "name": "Ryu0118"
+  },
+  "metadata": {
+    "description": "Official my-swift-linter skills for Claude Code",
+    "version": "0.12.1"
+  },
+  "plugins": [
+    {
+      "name": "my-swift-linter",
+      "source": "./.claude/plugins/my-swift-linter",
+      "category": "productivity"
+    }
+  ]
+}

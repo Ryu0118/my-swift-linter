@@ -268,7 +268,8 @@ struct SwiftUIViewPropertyRuleTests {
 
         #expect(diagnostics.contains { $0.isFixable })
         #expect(fixed.contains("static let imageSize = CGSize(width: 1080, height: 1240) // 画像の最適サイズ（4:5）"))
-        #expect(fixed.contains("private @ViewBuilder var content: some View"))
+        #expect(fixed.contains("@ViewBuilder\n    private var content: some View"))
+        #expect(!fixed.contains("private @ViewBuilder var"))
         #expect(!fixed.contains("height: 12画像"))
     }
 }
@@ -433,6 +434,27 @@ extension SwiftUIViewPropertyRuleTests {
         """
         let diagnostics = await rule.lint(source: source)
         #expect(diagnostics.isEmpty)
+    }
+
+    // MARK: - Function: Fix-It output must be syntactically valid
+
+    @Test("fix inserts @ViewBuilder before private modifier, not between it and func")
+    func fixPlacesViewBuilderBeforePrivateModifierOnFunction() throws {
+        let source = """
+        struct MyView: View {
+            private func content(for step: Int) -> some View {
+                let isActive = step == 1
+                Text("\\(isActive)")
+            }
+            var body: some View { content(for: 1) }
+        }
+        """
+        let (diagnostics, fixedSource) = rule.lintAndFix(source: source)
+        let fixed = try #require(fixedSource)
+
+        #expect(diagnostics.contains { $0.isFixable })
+        #expect(!fixed.contains("private @ViewBuilder func"))
+        #expect(fixed.contains("@ViewBuilder\n    private func content"))
     }
 }
 
