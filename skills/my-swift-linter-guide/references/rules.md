@@ -16,7 +16,7 @@ All rules default to `error` severity unless noted otherwise. Rules with a `seve
 | `use-url-file-path` | error | Yes | `severity` | Deprecated `URL(fileURLWithPath:)` and `URL(fileURLWithPath:isDirectory:)` initializers. |
 | `meaningful-suite-description` | error | No | `severity` | `@Suite` descriptions that duplicate the type name or a trivial type-name prefix. |
 | `test-function-naming` | error | No | `severity`, `check_spaces`, `check_underscores`, `check_test_prefix` | Swift Testing `@Test` functions with backtick phrase names, underscores, or redundant `test` prefixes. |
-| `test-description-matches-name` | error | No | `severity` | `@Test` or `@Suite` descriptions that do not correspond to the function or type name. |
+| `test-description-duplicates-name` | error | No | `severity` | `@Test` or `@Suite` descriptions that merely restate the function or type name and add no information. |
 | `missing-docs` | error | No | `min_access_level`, `severity`, `ignore_patterns` | Explicit declarations at or above the configured access level that lack doc comments. |
 
 ## Rule Details
@@ -182,15 +182,15 @@ rules:
       check_test_prefix: true
 ```
 
-### `test-description-matches-name`
+### `test-description-duplicates-name`
 
-Compares Swift Testing descriptions with declaration names after removing non-ASCII letters/digits and lowercasing. `@Test` descriptions must equal the function name after normalization. `@Suite` descriptions must contain the normalized type base name after stripping test suffixes.
+Flags Swift Testing descriptions that merely restate the declaration name. Both sides are normalized by keeping Unicode letters/digits (only spaces and punctuation are stripped) and lowercasing, so a description containing non-ASCII letters can never equal an ASCII name and is always treated as meaningful. `@Test` fires when the normalized description equals the function name. `@Suite` fires when it equals the type name with or without a test suffix; a description that names the type and adds detail is allowed.
 
-Fix by renaming the declaration or updating the description so reports and source names tell the same story.
+Fix by removing the redundant description or rewriting it to explain what the declaration verifies.
 
 ```yaml
 rules:
-  test-description-matches-name:
+  test-description-duplicates-name:
     args:
       severity: error
 ```

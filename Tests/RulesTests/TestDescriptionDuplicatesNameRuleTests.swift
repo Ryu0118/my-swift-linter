@@ -3,22 +3,24 @@ import SwiftASTLint
 import SwiftASTLintTestSupport
 import Testing
 
-@Suite("test-description-matches-name: detects @Test/@Suite descriptions that do not correspond to the function/type name")
-struct TestDescriptionMatchesNameRuleTests {
+@Suite("test-description-duplicates-name: flags @Test/@Suite descriptions that merely restate the function/type name")
+struct TestDescriptionDuplicatesNameRuleTests {
     private let rule: any RuleProtocol
 
     init() throws {
-        rule = try #require(rules.find(id: "test-description-matches-name"))
+        rule = try #require(rules.find(id: "test-description-duplicates-name"))
     }
 
-    // MARK: - Violations (@Test)
+    // MARK: - Violations (@Test) — description is a pure restatement of the name
 
-    @Test("error for mismatched @Test description and func name", arguments: [
-        ("user can log in", "fetchData"),
-        ("returns nil value", "computeSum"),
-        ("back rolled be can transaction applied re a", "aReappliedTransactionCanBeRolledBackAgain"),
+    @Test("error when @Test description merely restates the func name", arguments: [
+        ("success with all selected shows empty", "successWithAllSelectedShowsEmpty"),
+        ("handles all edge cases", "handlesAllEdgeCases"),
+        ("returns nil value", "returnsNilValue"),
+        // Hyphen/punctuation differences normalize away on both sides -> still a restatement.
+        ("A re-applied transaction can be rolled back again", "aReappliedTransactionCanBeRolledBackAgain"),
     ])
-    func mismatchedDescriptionAndName(description: String, funcName: String) {
+    func restatedDescriptionAndName(description: String, funcName: String) {
         let source = """
         import Testing
         struct MyTests {
@@ -36,96 +38,86 @@ struct TestDescriptionMatchesNameRuleTests {
         let source = """
         import Testing
         struct MyTests {
-            @Test("user can log in")
-            func fetchData() {}
+            @Test("handles all edge cases")
+            func handlesAllEdgeCases() {}
         }
         """
         let diagnostics = rule.lint(source: source)
         #expect(diagnostics.count == 1)
-        #expect(diagnostics[0].message.contains("user can log in"))
-        #expect(diagnostics[0].message.contains("fetchData"))
+        #expect(diagnostics[0].message.contains("handles all edge cases"))
+        #expect(diagnostics[0].message.contains("handlesAllEdgeCases"))
     }
 
-    @Test("multiple mismatched @Test functions each produce an error")
+    @Test("multiple restating @Test functions each produce an error")
     func multipleViolations() {
         let source = """
         import Testing
         struct MyTests {
-            @Test("user can log in")
-            func fetchData() {}
-            @Test("returns nil value")
-            func computeSum() {}
+            @Test("fetches data")
+            func fetchesData() {}
+            @Test("computes sum")
+            func computesSum() {}
         }
         """
         let diagnostics = rule.lint(source: source)
         #expect(diagnostics.count == 2)
     }
 
-    @Test("error when @Test at file scope has mismatched description")
-    func topLevelMismatch() {
+    @Test("error when @Test at file scope restates the name")
+    func topLevelRestatement() {
         let source = """
         import Testing
-        @Test("user can log in")
-        func fetchData() {}
+        @Test("fetches data")
+        func fetchesData() {}
         """
         let diagnostics = rule.lint(source: source)
         #expect(diagnostics.count == 1)
     }
 
-    @Test("error when description string comes after a trait argument")
+    @Test("error when a restating description follows a trait argument")
     func descriptionAfterTraitArgument() {
         let source = """
         import Testing
         struct MyTests {
-            @Test(.serialized, "user can log in")
-            func fetchData() {}
+            @Test(.serialized, "fetches data")
+            func fetchesData() {}
         }
         """
         let diagnostics = rule.lint(source: source)
         #expect(diagnostics.count == 1)
     }
 
-    @Test("error when @Test description matches but is on a parameterized test with wrong name")
-    func parameterizedTestMismatch() {
-        let source = """
-        import Testing
-        struct MyTests {
-            @Test("user can log in", arguments: [1, 2, 3])
-            func fetchData(_ value: Int) {}
-        }
-        """
-        let diagnostics = rule.lint(source: source)
-        #expect(diagnostics.count == 1)
-    }
-
-    // MARK: - No violations (@Test) — must NOT fire
-
-    @Test("no error for matching pairs", arguments: [
-        // The motivating example: hyphen in "re-applied" normalizes away on both sides.
-        ("A re-applied transaction can be rolled back again", "aReappliedTransactionCanBeRolledBackAgain"),
-        ("claudeHookOutput blocks when outOfSync", "claudeHookOutputBlocksWhenOutOfSync"),
-        ("user's data is fetched", "userSDataIsFetched"),
-        ("test 3 cases are handled", "test3CasesAreHandled"),
-    ])
-    func matchingPairs(description: String, funcName: String) {
-        let source = """
-        import Testing
-        struct MyTests {
-            @Test("\(description)")
-            func \(funcName)() {}
-        }
-        """
-        let diagnostics = rule.lint(source: source)
-        #expect(diagnostics.isEmpty)
-    }
-
-    @Test("no error on matching parameterized test with arguments label")
-    func parameterizedTestMatch() {
+    @Test("error when a parameterized test restates the name")
+    func parameterizedTestRestatement() {
         let source = """
         import Testing
         struct MyTests {
             @Test("handles all edge cases", arguments: [1, 2, 3])
             func handlesAllEdgeCases(_ value: Int) {}
+        }
+        """
+        let diagnostics = rule.lint(source: source)
+        #expect(diagnostics.count == 1)
+    }
+
+    // MARK: - No violations (@Test) — description adds meaning or is non-ASCII
+
+    @Test("no error when @Test description is a meaningful explanation, not a restatement", arguments: [
+        // Meaningful English that differs from the identifier.
+        ("user can log in", "fetchData"),
+        ("Malformed JSON should fail gracefully", "decodesInvalidPayload"),
+        // Japanese description: preserved by normalize, can never equal the ASCII name.
+        ("ログインできる", "canLogIn"),
+        // Japanese + ASCII digits/acronym: normalize keeps the Japanese, so no false match.
+        ("既知の入力に対する正しいSHA256ハッシュを生成する", "sha256"),
+        ("UTF-8文字列のSHA256ハッシュを正しく生成する", "sha256HandlesUTF8Strings"),
+    ])
+    func meaningfulDescription(description: String, funcName: String) {
+        let source = """
+        import Testing
+        struct MyTests {
+            @Test("\(description)")
+            func \(funcName)() {}
         }
         """
         let diagnostics = rule.lint(source: source)
@@ -171,10 +163,8 @@ struct TestDescriptionMatchesNameRuleTests {
         #expect(diagnostics.isEmpty)
     }
 
-    @Test("no error when description is entirely non-ASCII (normalizes to empty, skipped)")
-    func nonASCIIDescriptionSkipped() {
-        // Japanese descriptions normalize to an empty string; the rule cannot
-        // meaningfully compare them, so it must skip rather than flag.
+    @Test("no error when description is entirely non-ASCII (preserved, cannot equal ASCII name)")
+    func nonASCIIDescriptionAllowed() {
         let source = """
         import Testing
         struct MyTests {
@@ -186,7 +176,7 @@ struct TestDescriptionMatchesNameRuleTests {
         #expect(diagnostics.isEmpty)
     }
 
-    @Test("non-test function with similar description is ignored")
+    @Test("non-test function with a name-like description is ignored")
     func nonTestFunctionIgnored() {
         let source = """
         struct MyType {
@@ -216,42 +206,39 @@ struct TestDescriptionMatchesNameRuleTests {
         #expect(diagnostics.isEmpty)
     }
 
-    // MARK: - Violations (@Suite)
+    // MARK: - Violations (@Suite) — description restates the type name verbatim
 
-    @Test("error when @Suite description is unrelated to type name, with both names in the message")
-    func suiteDescriptionUnrelatedToTypeName() {
+    @Test("error when @Suite description restates the type name minus the Tests suffix")
+    func suiteDescriptionRestatesBaseName() {
         let source = """
         import Testing
-        @Suite("completely unrelated description")
+        @Suite("transaction manager")
         struct TransactionManagerTests {}
         """
         let diagnostics = rule.lint(source: source)
         #expect(diagnostics.count == 1)
         #expect(diagnostics[0].severity == .error)
-        #expect(diagnostics[0].message.contains("completely unrelated description"))
+        #expect(diagnostics[0].message.contains("transaction manager"))
         #expect(diagnostics[0].message.contains("TransactionManagerTests"))
     }
 
-    @Test("error when type is named exactly 'Tests' and description is unrelated")
-    func bareTestsTypeNameStillChecked() {
-        // Stripping the "Tests" suffix leaves an empty base name; the rule must
-        // fall back to the full type name instead of matching everything via
-        // contains("") == true.
+    @Test("error when @Suite description restates the full type name including the suffix")
+    func suiteDescriptionRestatesFullName() {
         let source = """
         import Testing
-        @Suite("completely unrelated description")
-        struct Tests {}
+        @Suite("Transaction Manager Tests")
+        struct TransactionManagerTests {}
         """
         let diagnostics = rule.lint(source: source)
         #expect(diagnostics.count == 1)
     }
 
-    @Test("error when nested @Suite type has unrelated description")
-    func nestedSuiteMismatch() {
+    @Test("error when a nested @Suite type restates its name")
+    func nestedSuiteRestatement() {
         let source = """
         import Testing
         struct OuterTests {
-            @Suite("completely unrelated")
+            @Suite("inner")
             struct InnerTests {}
         }
         """
@@ -259,36 +246,36 @@ struct TestDescriptionMatchesNameRuleTests {
         #expect(diagnostics.count == 1)
     }
 
-    @Test("@Suite and @Test mismatches in the same type each produce an error")
-    func suiteAndTestBothMismatch() {
+    @Test("@Suite and @Test restatements in the same type each produce an error")
+    func suiteAndTestBothRestate() {
         let source = """
         import Testing
-        @Suite("completely unrelated")
+        @Suite("transaction manager")
         struct TransactionManagerTests {
-            @Test("also unrelated")
-            func fetchData() {}
+            @Test("fetches data")
+            func fetchesData() {}
         }
         """
         let diagnostics = rule.lint(source: source)
         #expect(diagnostics.count == 2)
     }
 
-    // MARK: - No violations (@Suite)
-
-    @Test("no error when @Suite extension has qualified type name and description names the last component")
-    func suiteExtensionQualifiedName() {
-        // "Foo.BarTests" must compare against "Bar", not "FooBar".
+    @Test("error when a @Suite extension with a qualified name restates the last component")
+    func suiteExtensionQualifiedRestatement() {
+        // "Foo.BarTests" compares against "Bar", not "FooBar".
         let source = """
         import Testing
-        @Suite("Bar: integration scenarios")
+        @Suite("bar")
         extension Foo.BarTests {}
         """
         let diagnostics = rule.lint(source: source)
-        #expect(diagnostics.isEmpty)
+        #expect(diagnostics.count == 1)
     }
 
-    @Test("no error when @Suite description contains the type name (minus Tests suffix)")
-    func suiteDescriptionContainsTypeName() {
+    // MARK: - No violations (@Suite) — description adds detail or is non-ASCII
+
+    @Test("no error when @Suite description names the type and adds detail")
+    func suiteDescriptionAddsDetail() {
         let source = """
         import Testing
         @Suite("TransactionManager: rollback and commit behavior")
@@ -298,23 +285,12 @@ struct TestDescriptionMatchesNameRuleTests {
         #expect(diagnostics.isEmpty)
     }
 
-    @Test("no error when @Suite description normalizes to match type name")
-    func suiteDescriptionNormalizesToTypeName() {
+    @Test("no error when @Suite extension description adds detail beyond the last component")
+    func suiteExtensionAddsDetail() {
         let source = """
         import Testing
-        @Suite("transaction manager")
-        struct TransactionManagerTests {}
-        """
-        let diagnostics = rule.lint(source: source)
-        #expect(diagnostics.isEmpty)
-    }
-
-    @Test("no error when type named 'Tests' has description containing 'Tests'")
-    func bareTestsTypeNameWithMatchingDescription() {
-        let source = """
-        import Testing
-        @Suite("Tests: shared linter fixtures")
-        struct Tests {}
+        @Suite("Bar: integration scenarios")
+        extension Foo.BarTests {}
         """
         let diagnostics = rule.lint(source: source)
         #expect(diagnostics.isEmpty)
@@ -353,8 +329,8 @@ struct TestDescriptionMatchesNameRuleTests {
         #expect(diagnostics.isEmpty)
     }
 
-    @Test("no error when @Suite description is entirely non-ASCII (skipped)")
-    func suiteNonASCIIDescriptionSkipped() {
+    @Test("no error when @Suite description is entirely non-ASCII (preserved, cannot equal ASCII name)")
+    func suiteNonASCIIDescriptionAllowed() {
         let source = """
         import Testing
         @Suite("トランザクション管理のテスト")
