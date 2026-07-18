@@ -436,6 +436,35 @@ extension SwiftUIViewPropertyRuleTests {
         #expect(diagnostics.isEmpty)
     }
 
+    @Test("no error for UIViewControllerRepresentable.makeUIViewController despite 'View' substring in return type")
+    func makeUIViewControllerNotFlagged() async {
+        let source = """
+        struct MyWrapper: UIViewControllerRepresentable {
+            func makeUIViewController(context: Context) -> some UIViewController {
+                let controller = UIViewController()
+                return controller
+            }
+        }
+        """
+        let diagnostics = await rule.lint(source: source)
+        #expect(diagnostics.isEmpty)
+    }
+
+    @Test("error for some View & Identifiable composed opaque return type using return")
+    func composedViewProtocolReturnTypeFlagged() async {
+        let source = """
+        struct MyView: View {
+            private func content() -> some View & Identifiable {
+                let base = Text("hello")
+                return base
+            }
+            var body: some View { content() }
+        }
+        """
+        let diagnostics = await rule.lint(source: source)
+        #expect(diagnostics.contains { $0.severity == .error })
+    }
+
     // MARK: - Function: Fix-It output must be syntactically valid
 
     @Test("fix inserts @ViewBuilder before private modifier, not between it and func")
