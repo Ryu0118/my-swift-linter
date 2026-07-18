@@ -155,7 +155,7 @@ private final class SwiftUIViewPropertyVisitor: SyntaxVisitor {
     /// the same indentation the declaration already has — so the original modifier/keyword that
     /// follows lands correctly indented on its own line below `@ViewBuilder`.
     private func viewBuilderPrefix(precedingIndent: Trivia) -> Trivia {
-        let indent = precedingIndent.pieces.last(where: { $0.isSpaceOrTab }).map { Trivia(pieces: [$0]) } ?? []
+        let indent = precedingIndent.pieces.last { $0.isSpaceOrTab }.map { Trivia(pieces: [$0]) } ?? []
         return Trivia(pieces: [.unexpectedText("@ViewBuilder")]) + .newlines(1) + indent
     }
 
@@ -182,12 +182,26 @@ private final class SwiftUIViewPropertyVisitor: SyntaxVisitor {
             guard let pattern = binding.pattern.as(IdentifierPatternSyntax.self) else { continue }
             if pattern.identifier.text == "body" { return false }
             guard let typeAnnotation = binding.typeAnnotation else { continue }
-            let typeText = typeAnnotation.type.description.trimmingCharacters(in: .whitespaces)
-            if typeText.hasPrefix("some "), typeText.contains("View") {
+            if isSomeViewOpaqueType(typeAnnotation.type) {
                 return true
             }
         }
         return false
+    }
+
+    /// Returns `true` when `type` is `some View` or an opaque type whose protocol composition
+    /// includes `View` as an exact component (e.g. `some View & Identifiable`).
+    ///
+    /// Uses exact-component matching on the `&`-separated protocol list rather than substring
+    /// matching, because `some UIViewController` contains the substring `"View"` but is not
+    /// a SwiftUI `View`-returning type (this previously caused false positives on
+    /// `UIViewControllerRepresentable.makeUIViewController(context:) -> some UIViewController`).
+    private func isSomeViewOpaqueType(_ type: TypeSyntax) -> Bool {
+        let typeText = type.description.trimmingCharacters(in: .whitespaces)
+        guard typeText.hasPrefix("some ") else { return false }
+        let composedText = typeText.dropFirst("some ".count)
+        let components = composedText.split(separator: "&").map { $0.trimmingCharacters(in: .whitespaces) }
+        return components.contains("View")
     }
 
     /// Returns the implicit getter body of a computed property, or `nil` for explicit getter syntax.
@@ -213,15 +227,15 @@ private final class SwiftUIViewPropertyVisitor: SyntaxVisitor {
         }
     }
 
-    /// Returns `true` when the function returns `some View` (or `some <X>View`).
+    /// Returns `true` when the function returns `some View` (or an opaque type whose protocol
+    /// composition includes `View` as an exact component, e.g. `some View & Identifiable`).
     ///
     /// `func body(content:)` is excluded because it is the `ViewModifier.body(content:)`
     /// protocol witness, which already carries an implicit `@ViewBuilder` from the
     /// protocol requirement (mirrors the `var body` exclusion for `View`).
     private func isSomeViewFunction(_ node: FunctionDeclSyntax) -> Bool {
         guard let returnType = node.signature.returnClause?.type else { return false }
-        let typeText = returnType.description.trimmingCharacters(in: .whitespaces)
-        guard typeText.hasPrefix("some "), typeText.contains("View") else { return false }
+        guard isSomeViewOpaqueType(returnType) else { return false }
         if isViewModifierBody(node) { return false }
         return true
     }
