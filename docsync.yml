@@ -4,30 +4,32 @@ rules:
   - Sources/Rules/*Rule.swift
   - Sources/Rules/Rules.swift
   doc: README.md
-  message: A rule implementation changed — update README if the rule ID, severity,
-    configuration keys, or code examples changed.
-  checksum: d25b464227c28c8a31ac0ae3f79691aa305819ec7300507a698efb3e951e6c29
+  message: "A rule implementation changed \u2014 update README if the rule ID, severity,
+    configuration keys, or code examples changed."
+  checksum: 18468d6bcd64ab185f9043731bb80e6fb50f5858867a6390bca6a269565e2406
 - name: readme-cli
   sources:
   - Sources/my-swift-linter/main.swift
   doc: README.md
-  message: CLI entry point changed — update README if installation or usage instructions
-    changed.
+  message: "CLI entry point changed \u2014 update README if installation or usage
+    instructions changed."
   checksum: 4668dd95ad8575489f272464a68148cf1367911c814a85822c2ef8686d91bf10
 - name: skill-rules-catalog
   sources:
   - Sources/Rules/*Rule.swift
   - Sources/Rules/Rules.swift
   doc: skills/my-swift-linter-guide/references/rules.md
-  message: A rule implementation changed — update the my-swift-linter skill rule catalog
-    if the rule ID, severity, configuration keys, fix support, or behavior changed.
-  checksum: d25b464227c28c8a31ac0ae3f79691aa305819ec7300507a698efb3e951e6c29
+  message: "A rule implementation changed \u2014 update the my-swift-linter skill
+    rule catalog if the rule ID, severity, configuration keys, fix support, or behavior
+    changed."
+  checksum: 18468d6bcd64ab185f9043731bb80e6fb50f5858867a6390bca6a269565e2406
 - name: skill-guide-cli
   sources:
   - Sources/my-swift-linter/main.swift
   - install.sh
   doc: skills/my-swift-linter-guide/SKILL.md
-  message: CLI or installer behavior changed — update the my-swift-linter skill guide.
+  message: "CLI or installer behavior changed \u2014 update the my-swift-linter skill
+    guide."
   checksum: 12aeafa913c00b9bbeae4e0e03b9262bcbc9d2bdc227eeac5f947f73f50e0cd3
 - name: readme-agent-integrations
   sources:
@@ -38,5 +40,6 @@ rules:
   - apm.yml
   - skills/my-swift-linter-guide/SKILL.md
   doc: README.md
-  message: Agent skill/plugin manifests changed — update README installation instructions.
-  checksum: 67d0291e361477d9a454de8399d202f62ecbcba92379106fb3ca7c1a3cc38db0
+  message: "Agent skill/plugin manifests changed \u2014 update README installation
+    instructions."
+  checksum: 615e8d3eb17be06c904e5b8603b1b122fa7cd5de9c333ed5b310fa19fdea1a56
