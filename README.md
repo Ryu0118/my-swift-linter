@@ -97,6 +97,18 @@ swift build -c release
 
 ## Rules
 
+Each rule includes a description in the executable so agents and other tools can discover the
+available checks without reading the source. List the registered rules as JSON (the default) or
+human-readable text:
+
+```bash
+my-swift-linter rules
+my-swift-linter rules --format text
+```
+
+The JSON report includes each rule's ID, description, default and effective arguments, enabled
+state, and path filters.
+
 | Rule ID | Default Severity | Configurable | Description |
 |---------|-----------------|:------------:|-------------|
 | `deep-nesting` | error | ✓ | Flags control flow nesting — error at depth ≥ `error_depth` (default: 3); `warning_depth` can be configured separately |
