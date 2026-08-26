@@ -18,6 +18,7 @@ struct PropertyDeclarationOrderingArgs: Codable {
 
 let propertyDeclarationOrderingRule = ParameterizedRule(
     id: "property-declaration-ordering",
+    description: "Requires type properties to be grouped and ordered by wrapper, access level, and kind.",
     defaultArguments: PropertyDeclarationOrderingArgs(),
 ) { file, context, args in
     let visitor = PropertyDeclarationOrderingVisitor(context: context, severity: args.severity)

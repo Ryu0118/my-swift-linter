@@ -90,6 +90,7 @@ struct MissingDocsArgs: Codable {
 
 let missingDocsRule = ParameterizedRule(
     id: "missing-docs",
+    description: "Detects declarations at or above the configured access level that lack documentation comments.",
     defaultArguments: MissingDocsArgs(),
 ) { file, context, args in
     let threshold = AccessLevel(rawValue: args.minAccessLevel) ?? .public

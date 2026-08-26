@@ -31,6 +31,7 @@ struct NoTopLevelFunctionArgs: Codable {
 
 let noTopLevelFunctionRule = ParameterizedRule(
     id: "no-top-level-function",
+    description: "Disallows file-scope function declarations so helpers remain owned by a type or namespace.",
     defaultArguments: NoTopLevelFunctionArgs(),
 ) { file, context, args in
     for statement in file.statements {

@@ -22,6 +22,8 @@ struct ReturnSwitchExpressionArgs: Codable {
 
 let returnSwitchExpressionRule = ParameterizedRule(
     id: "return-switch-expression",
+    description: "Detects `switch` statements whose cases only return expressions "
+        + "and can be collapsed into `return switch`.",
     defaultArguments: ReturnSwitchExpressionArgs(),
 ) { file, context, args in
     let visitor = ReturnSwitchExpressionVisitor(context: context, severity: args.severity)

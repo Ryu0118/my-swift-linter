@@ -36,6 +36,8 @@ struct TestDescriptionDuplicatesNameArgs: Codable, Sendable {
 ///   description containing non-ASCII letters, which by construction cannot equal an ASCII name.
 let testDescriptionDuplicatesNameRule = ParameterizedRule(
     id: "test-description-duplicates-name",
+    description: "Checks that Swift Testing `@Test` and `@Suite` descriptions add information "
+        + "beyond declaration names.",
     defaultArguments: TestDescriptionDuplicatesNameArgs(),
 ) { file, context, args in
     let visitor = TestDescriptionDuplicatesNameVisitor(context: context, severity: args.severity)

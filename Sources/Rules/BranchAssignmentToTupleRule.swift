@@ -48,6 +48,7 @@ struct BranchAssignmentToTupleArgs: Codable {
 
 let branchAssignmentToTupleRule = ParameterizedRule(
     id: "branch-assignment-to-tuple",
+    description: "Detects uninitialized `let` declarations assigned in every branch of a following `if` or `switch`.",
     defaultArguments: BranchAssignmentToTupleArgs(),
 ) { file, context, args in
     let visitor = BranchAssignmentToTupleVisitor(context: context, severity: args.severity)

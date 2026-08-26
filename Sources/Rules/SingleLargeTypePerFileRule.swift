@@ -27,6 +27,7 @@ struct SingleLargeTypeArgs: Codable {
 /// ```
 let singleLargeTypePerFileRule = ParameterizedRule(
     id: "single-large-type-per-file",
+    description: "Detects multiple large public or package types in a single file.",
     defaultArguments: SingleLargeTypeArgs()
 ) { file, context, args in
     let visitor = LargeTypeCollector(minLines: args.warningLines)

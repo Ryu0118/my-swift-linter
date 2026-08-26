@@ -10,6 +10,7 @@ struct UseURLFilePathArgs: Codable {
 
 let useURLFilePathRule = ParameterizedRule(
     id: "use-url-file-path",
+    description: "Detects deprecated `URL(fileURLWithPath:)` initializers and suggests `URL(filePath:)`.",
     defaultArguments: UseURLFilePathArgs(),
 ) { file, context, args in
     let visitor = UseURLFilePathVisitor(context: context, severity: args.severity)
