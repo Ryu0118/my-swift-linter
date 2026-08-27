@@ -15,6 +15,7 @@ struct FunctionAccessModifierGroupingArgs: Codable {
 
 let functionAccessModifierGroupingRule = ParameterizedRule(
     id: "function-access-modifier-grouping",
+    description: "Requires functions in a type or extension to be grouped by access level.",
     defaultArguments: FunctionAccessModifierGroupingArgs(),
 ) { file, context, args in
     let visitor = FunctionAccessGroupingVisitor(context: context, severity: args.severity)

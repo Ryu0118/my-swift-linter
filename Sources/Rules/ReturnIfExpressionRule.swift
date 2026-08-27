@@ -24,6 +24,8 @@ struct ReturnIfExpressionArgs: Codable {
 
 let returnIfExpressionRule = ParameterizedRule(
     id: "return-if-expression",
+    description: "Detects `if`/`else` chains whose branches only return expressions "
+        + "and can be collapsed into `return if`.",
     defaultArguments: ReturnIfExpressionArgs(),
 ) { file, context, args in
     let visitor = ReturnIfExpressionVisitor(context: context, severity: args.severity)

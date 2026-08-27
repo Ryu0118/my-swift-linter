@@ -27,6 +27,7 @@ struct DeepNestingArgs: Codable {
 /// ```
 let deepNestingRule = ParameterizedRule(
     id: "deep-nesting",
+    description: "Detects control-flow nesting that reaches the configured warning or error depth.",
     defaultArguments: DeepNestingArgs()
 ) { file, context, args in
     let visitor = DeepNestingVisitor(warningDepth: args.warningDepth, errorDepth: args.errorDepth, context: context)

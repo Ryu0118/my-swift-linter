@@ -62,6 +62,8 @@ struct TestFunctionNamingArgs: Codable {
 
 let testFunctionNamingRule = ParameterizedRule(
     id: "test-function-naming",
+    description: "Enforces lowerCamelCase names for Swift Testing `@Test` functions "
+        + "without redundant prefixes or underscores.",
     defaultArguments: TestFunctionNamingArgs(),
 ) { file, context, args in
     let visitor = TestFunctionNamingVisitor(context: context, args: args)

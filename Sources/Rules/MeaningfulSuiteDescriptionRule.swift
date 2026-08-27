@@ -20,6 +20,7 @@ struct MeaningfulSuiteDescriptionArgs: Codable {
 
 let meaningfulSuiteDescriptionRule = ParameterizedRule(
     id: "meaningful-suite-description",
+    description: "Detects `@Suite` descriptions that repeat the suite type name instead of describing its behavior.",
     defaultArguments: MeaningfulSuiteDescriptionArgs(),
 ) { file, context, args in
     let visitor = MeaningfulSuiteDescriptionVisitor(context: context, severity: args.severity)

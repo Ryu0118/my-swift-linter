@@ -2,6 +2,11 @@
 
 All rules default to `error` severity unless noted otherwise. Rules with a `severity` argument accept `error` or `warning`.
 
+Rule descriptions are embedded in the executable. Agents and tools can discover the registered
+rules without reading the source by running `my-swift-linter rules` (JSON by default), or use
+`my-swift-linter rules --format text` for a human-readable report. The JSON report also includes
+default/effective arguments, enabled state, and path filters.
+
 | Rule ID | Default | Fix | Configuration | Detects |
 | --- | --- | --- | --- | --- |
 | `deep-nesting` | error at depth >= 3 | No | `warning_depth`, `error_depth` | Control-flow nesting in `if`, `guard`, `for`, `while`, `switch`, and `do` blocks beyond configured thresholds. |

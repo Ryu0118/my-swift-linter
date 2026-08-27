@@ -31,6 +31,7 @@ struct SwiftUIViewPropertyArgs: Codable {
 
 let swiftUIViewPropertyRule = ParameterizedRule(
     id: "swiftui-view-property",
+    description: "Enforces SwiftUI result-builder conventions for `some View` properties and functions.",
     defaultArguments: SwiftUIViewPropertyArgs(),
 ) { file, context, args in
     let visitor = SwiftUIViewPropertyVisitor(context: context, severity: args.severity)
