@@ -677,7 +677,7 @@ my-swift-linter /path/to/your/Sources --fix
 
 ### Configure via YAML
 
-Place a `.swift-ast-lint.yml` in the root of your project:
+Place a `.my-swift-linter.yml` in the root of your project (previously `.swift-ast-lint.yml`):
 
 ```yaml
 rules:

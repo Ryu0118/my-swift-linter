@@ -1,6 +1,6 @@
 ---
 name: my-swift-linter-guide
-description: Use when installing, configuring, running, fixing, or explaining my-swift-linter, swift-ast-lint rules, .swift-ast-lint.yml, Swift lint diagnostics, or the my-swift-linter CLI.
+description: Use when installing, configuring, running, fixing, or explaining my-swift-linter, swift-ast-lint rules, .my-swift-linter.yml, Swift lint diagnostics, or the my-swift-linter CLI.
 ---
 
 # my-swift-linter Guide
@@ -40,10 +40,10 @@ swift build -c release
 Run the installed binary:
 
 ```sh
-my-swift-linter <paths> --config .swift-ast-lint.yml
+my-swift-linter <paths> --config .my-swift-linter.yml
 ```
 
-`<paths>` defaults to `.`. The default config path is `.swift-ast-lint.yml`.
+`<paths>` defaults to `.`. The default config path is `.my-swift-linter.yml` (previously `.swift-ast-lint.yml`).
 
 Apply available fixes:
 
@@ -68,7 +68,7 @@ The command exits with code `2` when lint errors remain.
 
 ## Configure
 
-Create `.swift-ast-lint.yml` at the target project root:
+Create `.my-swift-linter.yml` at the target project root:
 
 ```yaml
 disabled_rules:

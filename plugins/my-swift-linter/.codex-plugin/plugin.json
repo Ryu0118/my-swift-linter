@@ -18,7 +18,7 @@
   "interface": {
     "displayName": "my-swift-linter",
     "shortDescription": "Run and configure my-swift-linter from Codex.",
-    "longDescription": "my-swift-linter provides Codex with CLI usage guidance, .swift-ast-lint.yml setup, rule explanations, and fix workflows.",
+    "longDescription": "my-swift-linter provides Codex with CLI usage guidance, .my-swift-linter.yml setup, rule explanations, and fix workflows.",
     "developerName": "Ryu0118",
     "category": "Productivity",
     "capabilities": [
@@ -26,7 +26,7 @@
     ],
     "defaultPrompt": [
       "Run my-swift-linter and fix violations.",
-      "Set up .swift-ast-lint.yml for this project.",
+      "Set up .my-swift-linter.yml for this project.",
       "Explain this my-swift-linter violation."
     ]
   }
