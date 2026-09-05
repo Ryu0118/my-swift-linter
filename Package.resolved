@@ -1,5 +1,5 @@
 {
-  "originHash" : "ad8c950d1831c0a76612217404c00650f0b1a76c69683a627fbfce4b1b875cdb",
+  "originHash" : "62356cf6bc757738c4d61ff539d1b4dffa34deaf09a0d6c067df245af171b7a3",
   "pins" : [
     {
       "identity" : "filemanagerprotocol",
@@ -33,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Ryu0118/swift-ast-lint.git",
       "state" : {
-        "revision" : "549ef6f61884ada3e503c55cdfc50825b1bf8406",
-        "version" : "0.3.1"
+        "revision" : "2924c62679836457a9daf2f863c96125fc1b7044",
+        "version" : "0.4.0"
       }
     },
     {
