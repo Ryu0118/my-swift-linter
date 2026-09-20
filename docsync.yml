@@ -13,7 +13,7 @@ rules:
   doc: README.md
   message: "CLI entry point changed \u2014 update README if installation or usage
     instructions changed."
-  checksum: 4668dd95ad8575489f272464a68148cf1367911c814a85822c2ef8686d91bf10
+  checksum: 89ddf917221e7c1c74099940567f8da2f8d027aa704e109352df488aec925748
 - name: skill-rules-catalog
   sources:
   - Sources/Rules/*Rule.swift
@@ -30,7 +30,7 @@ rules:
   doc: skills/my-swift-linter-guide/SKILL.md
   message: "CLI or installer behavior changed \u2014 update the my-swift-linter skill
     guide."
-  checksum: 12aeafa913c00b9bbeae4e0e03b9262bcbc9d2bdc227eeac5f947f73f50e0cd3
+  checksum: 3a65ed81ce914bb9f087144691073fe197b96ab3a8837f8c566897c8fdc27ae8
 - name: readme-agent-integrations
   sources:
   - .claude/plugins/my-swift-linter/.claude-plugin/plugin.json
@@ -42,4 +42,4 @@ rules:
   doc: README.md
   message: "Agent skill/plugin manifests changed \u2014 update README installation
     instructions."
-  checksum: a001beb74690bc55c4eb4cf20fce5a8314d867b2e27c6b8cbbf6cb3f6d5e5bba
+  checksum: 4ffc88f2a9daf076b5d226ce50884ac4b6825adbd98eec860c5c00437306fbb6
