@@ -5,6 +5,7 @@ import SwiftSyntax
 public let rules = RuleSet {
     deepNestingRule
     collapsibleIfRule
+    hoistRepeatedInstanceRule
     singleLargeTypePerFileRule
     propertyDeclarationOrderingRule
     functionAccessModifierGroupingRule
