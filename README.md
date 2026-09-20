@@ -126,6 +126,7 @@ state, and path filters.
 | `test-function-naming` | error | ✓ | Flags `@Test` functions whose name is a backtick-quoted phrase, underscore-separated, or starts with `test` — use lowerCamelCase and move the description into `@Test("…")` |
 | `test-description-duplicates-name` | error | ✓ | Flags `@Test`/`@Suite` descriptions that merely restate the function/type name (the camelCase name spelled out with spaces) and add no information — remove the description or rewrite it as a meaningful explanation |
 | `collapsible-if` | error | ✓ | Flags an `if`/`guard` whose body contains only a single else-less nested `if` — merge the conditions with `,` |
+| `hoist-repeated-instance` | error | ✓ | Flags a configurable Foundation type (e.g. `JSONDecoder`) constructed and configured identically as a local variable in two or more instance members — hoist it to a stored property |
 
 ### deep-nesting
 
@@ -211,6 +212,61 @@ rules:
 ```
 
 No Fix-It is provided (merging condition lists can require manual rewrites when bindings shadow).
+
+### hoist-repeated-instance
+
+Emits an error when a configurable Foundation type is constructed as a local `let`/`var` and configured with plain property assignments, and that same construction-plus-configuration is repeated identically in two or more **instance** members (functions, initializers, computed properties, subscripts) of the same `struct`/`class`/`actor`. The repeated allocation and setup could instead be a single stored property, shared by every caller.
+
+```swift
+// ❌ error — identical construction and configuration in two functions
+struct Foo {
+    func decode(_ data: Data) throws -> Bar {
+        let jsonDecoder = JSONDecoder()
+        jsonDecoder.dateDecodingStrategy = .iso8601
+        return try jsonDecoder.decode(Bar.self, from: data)
+    }
+    func decodeOther(_ data: Data) throws -> Baz {
+        let jsonDecoder = JSONDecoder()
+        jsonDecoder.dateDecodingStrategy = .iso8601
+        return try jsonDecoder.decode(Baz.self, from: data)
+    }
+}
+
+// ✅
+struct Foo {
+    private let jsonDecoder: JSONDecoder = {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return decoder
+    }()
+    func decode(_ data: Data) throws -> Bar {
+        try jsonDecoder.decode(Bar.self, from: data)
+    }
+    func decodeOther(_ data: Data) throws -> Baz {
+        try jsonDecoder.decode(Baz.self, from: data)
+    }
+}
+```
+
+Only flags when the configuration doesn't reference `self`, a parameter, a local variable, or another instance member — those can't be seen from a stored-property initializer, so hoisting them would not compile. Not flagged when either occurrence has a different configuration, the local variable escapes (returned, passed as a bare argument, aliased, captured by a nested closure), or is reassigned.
+
+**Out of scope in this version:** `static` members, `enum` containers (neither can host the recommended `private let`), and extensions of a type declared in another file. See [the rule catalog](skills/my-swift-linter-guide/references/rules.md#hoist-repeated-instance) for the full list of exclusions and the default type allowlist.
+
+**Configuration**
+
+```yaml
+rules:
+  hoist-repeated-instance:
+    args:
+      severity: error          # default
+      minimum_occurrences: 2   # default
+      flag_unconfigured: true  # default
+      types:                   # replaces the default list entirely
+        - JSONDecoder
+        - JSONEncoder
+```
+
+No Fix-It is provided (synthesizing the stored property and rewriting every call site is not a single-node mechanical edit).
 
 ### single-large-type-per-file
 

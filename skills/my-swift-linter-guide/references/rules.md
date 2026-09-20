@@ -24,6 +24,7 @@ default/effective arguments, enabled state, and path filters.
 | `test-description-duplicates-name` | error | No | `severity` | `@Test` or `@Suite` descriptions that merely restate the function or type name and add no information. |
 | `missing-docs` | error | No | `min_access_level`, `severity`, `ignore_patterns` | Explicit declarations at or above the configured access level that lack doc comments. |
 | `collapsible-if` | error | No | `severity` | An `if`/`guard` whose body contains only a single else-less nested `if`. |
+| `hoist-repeated-instance` | error | No | `severity`, `minimum_occurrences`, `types`, `flag_unconfigured` | A configurable Foundation type constructed and configured identically as a local variable in two or more instance members of the same type. |
 
 ## Rule Details
 
@@ -238,4 +239,39 @@ rules:
   collapsible-if:
     args:
       severity: error
+```
+
+### `hoist-repeated-instance`
+
+Flags a local `let`/`var` constructed with a zero-argument initializer (`T()`, `T.init()`, `let x: T = .init()`) of an allowlisted, configurable Foundation type, optionally followed by a run of plain `x.<path> = <rhs>` property assignments (the "configuration prefix"), when the exact same construction and configuration is repeated in two or more **instance** members (`func`, `init`, computed property, `subscript`) of the same `struct`/`class`/`actor` (or a same-file `extension` of it).
+
+Two occurrences are "the same" when the type matches and the configuration prefix has the same set of `(property path, RHS token text)` pairs — order-independent, since assigning to different properties is commutative. A property assigned twice within one prefix, or a config statement guarded by a conditional, disqualifies that occurrence (the prefix stops at the first non-matching statement).
+
+**Default type allowlist:** `JSONDecoder`, `JSONEncoder`, `PropertyListDecoder`, `PropertyListEncoder`, `DateFormatter`, `NumberFormatter`, `DateComponentsFormatter`, `DateIntervalFormatter`, `PersonNameComponentsFormatter`. This list is deliberately closed and was verified empirically against Swift 6 strict concurrency (`swiftc -strict-concurrency=complete`): hoisting a value of one of these types to an instance stored property compiles cleanly. Five related Foundation types are intentionally **excluded** from the default because they are not `Sendable` and hoisting them to a stored property can silently remove the enclosing type's implicit `Sendable` conformance — a behavior change this rule must not recommend: `ISO8601DateFormatter`, `RelativeDateTimeFormatter`, `ByteCountFormatter`, `MeasurementFormatter`, `ListFormatter`. Add any of these back (or any other type) via the `types` YAML key at your own risk.
+
+**Hoistability check.** A configuration's RHS is only treated as a match — and an occurrence is only recorded at all — when the RHS does not reference `self`, a function/closure parameter, a local variable (anywhere in the enclosing member, not just the current block), or another instance property/method declared in the same file. None of those are visible from a stored-property initializer, so a construction that depends on them cannot actually be hoisted; flagging it would recommend code that doesn't compile. A bare identifier that cannot be resolved this way (e.g. a global constant, or an instance member declared in a different file) is still flagged, since the rule has no type-checker — treat this class of diagnostic as a prompt to double-check by hand, not a certainty.
+
+**Escape analysis.** After the configuration prefix, the local variable may only be used as the base of a member-access/subscript chain (a read or a method call). It must not be returned, passed as a bare argument, assigned to another binding, reassigned, or captured by a nested closure or nested function — any of those makes an occurrence unsafe to hoist and disqualifies it.
+
+Not flagged when:
+- the two occurrences configure the type differently, or only partially overlap in which properties they set
+- the local variable is inside a `static func`/`static var` or a `class func` (static members and `enum` containers/namespaces are out of scope for this version — a `static let` hoist target with a different group key and a `Sendable` caveat is a possible future addition)
+- the construction is the pattern this rule itself recommends: a stored `private let x: T = { ...; return x }()`, `lazy var`, or `private let x = T()` — stored-property initializers are never scanned as occurrence sites
+- the type isn't in the allowlist, the initializer takes arguments, or the declaration binds more than one name (`let a = T(), b = U()`)
+- the container is an `extension` of a type with no primary `struct`/`class`/`actor` declaration in the same file (including a `protocol` extension, since a protocol can never hold a stored property)
+
+**Known overlap:** a `let` inside a `some View` computed property without `@ViewBuilder` can also trip `swiftui-view-property`; both point the same direction (get the `let` out of the property body), so the double report is expected, not a bug.
+
+No automatic fix (synthesizing the stored property, removing N local declarations, and rewriting N call sites is not a single-node mechanical edit).
+
+```yaml
+rules:
+  hoist-repeated-instance:
+    args:
+      severity: error
+      minimum_occurrences: 2
+      flag_unconfigured: true
+      types:                 # REPLACES the default list, does not extend it
+        - JSONDecoder
+        - JSONEncoder
 ```
