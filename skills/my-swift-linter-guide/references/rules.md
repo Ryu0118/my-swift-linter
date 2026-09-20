@@ -23,6 +23,7 @@ default/effective arguments, enabled state, and path filters.
 | `test-function-naming` | error | No | `severity`, `check_spaces`, `check_underscores`, `check_test_prefix` | Swift Testing `@Test` functions with backtick phrase names, underscores, or redundant `test` prefixes. |
 | `test-description-duplicates-name` | error | No | `severity` | `@Test` or `@Suite` descriptions that merely restate the function or type name and add no information. |
 | `missing-docs` | error | No | `min_access_level`, `severity`, `ignore_patterns` | Explicit declarations at or above the configured access level that lack doc comments. |
+| `collapsible-if` | warning | No | — | An `if`/`guard` whose body contains only a single else-less nested `if`. |
 
 ## Rule Details
 
@@ -221,3 +222,13 @@ rules:
 ```
 
 Each `ignore_patterns` entry matches all specified fields. Omitted fields are wildcards. `kinds` and `names` are OR lists. `modifiers` is an AND list. `name_pattern` is a regular expression searched in the declaration name; invalid regexes never match.
+
+### `collapsible-if`
+
+Flags an `if` (or `guard`) whose body contains nothing but a single, else-less nested `if` — a nesting level that adds no branching and can be merged into the outer condition list with `,`. Covers plain conditions and `if let`/optional-binding chains, and also `guard ... else { }` immediately followed by a single else-less `if` as the rest of the block.
+
+Not flagged when: either `if` has an `else` clause, the outer body has statements besides the nested `if`, the outer `if` is labeled, or the nested `if` sits inside another construct (e.g. `for`) rather than directly in the body.
+
+Shadowed optional bindings (`if let x = a { if let x = x.child { ... } }`) are still flagged since the nesting is redundant, but the message notes a mechanical merge would redeclare the name — the fix must be done by hand.
+
+No configuration options and no automatic fix (merging condition lists can require manual rewrites when bindings shadow).

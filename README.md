@@ -125,6 +125,7 @@ state, and path filters.
 | `meaningful-suite-description` | error | ✓ | Flags `@Suite` descriptions that are identical to the type name (or the name minus a `Tests`/`Test`/`Spec` suffix) — write a description that explains what the suite tests |
 | `test-function-naming` | error | ✓ | Flags `@Test` functions whose name is a backtick-quoted phrase, underscore-separated, or starts with `test` — use lowerCamelCase and move the description into `@Test("…")` |
 | `test-description-duplicates-name` | error | ✓ | Flags `@Test`/`@Suite` descriptions that merely restate the function/type name (the camelCase name spelled out with spaces) and add no information — remove the description or rewrite it as a meaningful explanation |
+| `collapsible-if` | warning | ✗ | Flags an `if`/`guard` whose body contains only a single else-less nested `if` — merge the conditions with `,` |
 
 ### deep-nesting
 
@@ -161,6 +162,46 @@ rules:
       warning_depth: 3   # default
       error_depth: 3     # default
 ```
+
+### collapsible-if
+
+Emits a warning when an `if` (or `guard`) body contains nothing but a single, else-less nested `if` — a nesting level that adds no branching of its own. `guard`/`if let` optional bindings are covered too. Not flagged when either `if` has an `else`, the outer body has other statements, the outer `if` is labeled, or the nested `if` sits inside another construct like `for`. Shadowed optional bindings are still flagged, but the message notes that a mechanical merge would redeclare the name.
+
+```swift
+// ❌ warning
+func process() {
+    if condition {
+        if other {
+            hoge()
+        }
+    }
+}
+
+// ✅
+func process() {
+    if condition, other {
+        hoge()
+    }
+}
+```
+
+```swift
+// ❌ warning
+func process() {
+    guard condition else { return }
+    if other {
+        hoge()
+    }
+}
+
+// ✅
+func process() {
+    guard condition, other else { return }
+    hoge()
+}
+```
+
+Not configurable and no Fix-It is provided (merging condition lists can require manual rewrites when bindings shadow).
 
 ### single-large-type-per-file
 

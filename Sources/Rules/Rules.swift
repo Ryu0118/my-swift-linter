@@ -4,6 +4,7 @@ import SwiftSyntax
 /// The rule set applied across the entire project.
 public let rules = RuleSet {
     deepNestingRule
+    collapsibleIfRule
     singleLargeTypePerFileRule
     propertyDeclarationOrderingRule
     functionAccessModifierGroupingRule
