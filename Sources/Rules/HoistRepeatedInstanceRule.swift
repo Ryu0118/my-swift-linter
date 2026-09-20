@@ -146,27 +146,12 @@ private struct Occurrence {
     let declaration: VariableDeclSyntax
 }
 
+/// `[String: String]`'s synthesized `Hashable`/`Equatable` conformance is already
+/// order-independent over its key-value pairs, so no manual conformance is needed here.
 private struct GroupKey: Hashable {
     let containerName: String
     let typeName: String
     let signature: [String: String]
-}
-
-extension GroupKey {
-    static func == (lhs: GroupKey, rhs: GroupKey) -> Bool {
-        lhs.containerName == rhs.containerName
-            && lhs.typeName == rhs.typeName
-            && lhs.signature == rhs.signature
-    }
-
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(containerName)
-        hasher.combine(typeName)
-        for (key, value) in signature.sorted(by: { $0.key < $1.key }) {
-            hasher.combine(key)
-            hasher.combine(value)
-        }
-    }
 }
 
 // MARK: - Reporting
@@ -652,30 +637,12 @@ private final class HoistRepeatedInstanceCollector: SyntaxVisitor {
 
     /// Matches `x.<member path, possibly with subscripts> = <rhs>` as a plain assignment
     /// (compound assignment operators like `+=` are intentionally excluded).
-    ///
-    /// The parser represents `lhs = rhs` in statement position as a `SequenceExprSyntax` with
-    /// exactly three elements `[lhs, AssignmentExprSyntax, rhs]` — it is not folded into an
-    /// `InfixOperatorExprSyntax` at this stage, so both shapes must be handled.
     private func simpleAssignment(_ item: CodeBlockItemSyntax, base variableName: String) -> Assignment? {
         guard let expr = expressionStatement(item) else { return nil }
-        guard let (lhs, rhs) = plainAssignmentOperands(expr) else { return nil }
+        guard let (lhs, rhs) = assignmentOperands(expr) else { return nil }
         guard let path = memberPath(lhs, base: variableName) else { return nil }
         let rhsText = tokenText(rhs)
         return Assignment(path: path, rhs: rhs, rhsText: rhsText)
-    }
-
-    /// Returns `(lhs, rhs)` when `expr` is a plain (non-compound) assignment, in either its
-    /// `InfixOperatorExprSyntax`-folded form or its raw three-element `SequenceExprSyntax` form.
-    private func plainAssignmentOperands(_ expr: ExprSyntax) -> (ExprSyntax, ExprSyntax)? {
-        if let infix = expr.as(InfixOperatorExprSyntax.self), infix.operator.is(AssignmentExprSyntax.self) {
-            return (infix.leftOperand, infix.rightOperand)
-        }
-        if let sequence = expr.as(SequenceExprSyntax.self) {
-            let elements = Array(sequence.elements)
-            guard elements.count == 3, elements[1].is(AssignmentExprSyntax.self) else { return nil }
-            return (elements[0], elements[2])
-        }
-        return nil
     }
 
     /// Extracts the dotted/subscript path text (excluding the base) when `expr` is `x.a.b`,
@@ -829,12 +796,17 @@ private final class HoistRepeatedInstanceCollector: SyntaxVisitor {
                     break
                 }
 
-                if let sequence = top.parent?.parent?.as(SequenceExprSyntax.self) {
-                    let elements = Array(sequence.elements)
-                    if elements.count >= 2, elements[0].id == top.id, isAssignmentLike(elements[1]) {
-                        safe = false
-                        return .skipChildren
-                    }
+                // `top`'s enclosing expression is the assignment itself (either
+                // `InfixOperatorExprSyntax` or the raw `SequenceExprSyntax` form) when `top` is
+                // its LHS — reuse the shared assignment-shape helper, allowing compound
+                // assignment (`+=`) too, since either kind mutates a shared property at call
+                // time and is unsafe to hoist.
+                if let enclosing = top.parent?.parent?.as(ExprSyntax.self),
+                   let (lhs, _) = assignmentOperands(enclosing, allowCompound: true),
+                   lhs.id == top.id
+                {
+                    safe = false
+                    return .skipChildren
                 }
 
                 // Allowed: base of a member access/subscript chain used as a call or read, as
@@ -847,14 +819,6 @@ private final class HoistRepeatedInstanceCollector: SyntaxVisitor {
                 // Anything else (return, bare argument, assignment RHS/LHS alias, etc.) escapes.
                 safe = false
                 return .skipChildren
-            }
-
-            private func isAssignmentLike(_ expr: ExprSyntax) -> Bool {
-                if expr.is(AssignmentExprSyntax.self) { return true }
-                guard let binaryOperator = expr.as(BinaryOperatorExprSyntax.self) else { return false }
-                let text = binaryOperator.operator.text
-                guard text.hasSuffix("=") else { return false }
-                return !["==", "!=", "<=", ">="].contains(text)
             }
         }
 

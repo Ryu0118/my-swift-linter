@@ -897,6 +897,31 @@ struct HoistRepeatedInstanceRuleTests {
         #expect(diagnostics.isEmpty)
     }
 
+    @Test("assignment with a multi-token binary-expression RHS after the prefix is still unsafe")
+    func f17b_multiTokenRHSAssignmentAfterPrefix() async {
+        let source = """
+        struct Foo {
+            func a(_ x: Int) -> String {
+                let f = NumberFormatter()
+                f.minimumFractionDigits = 2
+                log()
+                f.maximumFractionDigits = x + 1
+                return f.string(from: 1) ?? ""
+            }
+            func b(_ x: Int) -> String {
+                let f = NumberFormatter()
+                f.minimumFractionDigits = 2
+                log()
+                f.maximumFractionDigits = x + 1
+                return f.string(from: 1) ?? ""
+            }
+            func log() {}
+        }
+        """
+        let diagnostics = await rule.lint(source: source)
+        #expect(diagnostics.isEmpty)
+    }
+
     @Test("types outside the allowlist are not flagged")
     func f18_typeOutsideAllowlist() async {
         let source = """
