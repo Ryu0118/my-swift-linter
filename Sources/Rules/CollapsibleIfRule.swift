@@ -1,6 +1,10 @@
 import SwiftASTLint
 import SwiftSyntax
 
+struct CollapsibleIfArgs: Codable {
+    var severity: Severity = .error
+}
+
 /// Flags an `if` (or `guard`) whose body contains nothing but a single, else-less
 /// nested `if` — a nesting level that adds no branching of its own and can be
 /// merged into the outer condition list.
@@ -14,16 +18,30 @@ import SwiftSyntax
 /// Optional-binding shadowing (`if let x = a { if let x = x.child { ... } }`) is still
 /// flagged, since the nesting is still redundant, but the diagnostic notes that a
 /// mechanical merge would produce a redeclaration and must be done by hand.
-let collapsibleIfRule = Rule(id: "collapsible-if", description: "Detects an if/guard whose body contains only a single else-less nested if, which can be merged into the outer condition list.") { file, context in
-    let visitor = CollapsibleIfVisitor(context: context)
+///
+/// Configure via YAML:
+/// ```yaml
+/// rules:
+///   collapsible-if:
+///     args:
+///       severity: error
+/// ```
+let collapsibleIfRule = ParameterizedRule(
+    id: "collapsible-if",
+    description: "Detects an if/guard whose body contains only a single else-less nested if, which can be merged into the outer condition list.",
+    defaultArguments: CollapsibleIfArgs()
+) { file, context, args in
+    let visitor = CollapsibleIfVisitor(context: context, severity: args.severity)
     visitor.walk(file)
 }
 
 private final class CollapsibleIfVisitor: SyntaxVisitor {
     let context: LintContext
+    let severity: Severity
 
-    init(context: LintContext) {
+    init(context: LintContext, severity: Severity) {
         self.context = context
+        self.severity = severity
         super.init(viewMode: .sourceAccurate)
     }
 
@@ -63,7 +81,7 @@ private final class CollapsibleIfVisitor: SyntaxVisitor {
 
             let shadowed = shadowedNames(outer: guardStmt.conditions, inner: innerIf.conditions)
             let message = collapsibleMessage(shadowed: shadowed, kind: "guard")
-            context.report(on: innerIf, message: message, severity: .warning)
+            context.report(on: innerIf, message: message, severity: severity)
         }
     }
 
@@ -83,7 +101,7 @@ private final class CollapsibleIfVisitor: SyntaxVisitor {
         guard innerIf.elseBody == nil else { return }
 
         let shadowed = shadowedNames(outer: outerConditions, inner: innerIf.conditions)
-        context.report(on: innerIf, message: collapsibleMessage(shadowed: shadowed, kind: "if"), severity: .warning)
+        context.report(on: innerIf, message: collapsibleMessage(shadowed: shadowed, kind: "if"), severity: severity)
     }
 
     private func collapsibleMessage(shadowed: String?, kind: String) -> String {

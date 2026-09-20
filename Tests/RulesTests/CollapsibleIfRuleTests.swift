@@ -25,7 +25,7 @@ struct CollapsibleIfRuleTests {
         """
         let diagnostics = await rule.lint(source: source)
         #expect(diagnostics.count == 1)
-        #expect(diagnostics[0].severity == .warning)
+        #expect(diagnostics[0].severity == .error)
     }
 
     @Test("if let containing only an else-less if let is a violation")
@@ -214,5 +214,38 @@ struct CollapsibleIfRuleTests {
         let diagnostics = await rule.lint(source: source)
         #expect(diagnostics.count == 1)
         #expect(diagnostics[0].message.lowercased().contains("merge"))
+    }
+
+    // MARK: - YAML args override
+
+    @Test("YAML severity override lowers to warning")
+    func yamlSeverityOverride() async {
+        let source = """
+        func foo() {
+            if condition {
+                if other {
+                    hoge()
+                }
+            }
+        }
+        """
+        let diagnostics = await rule.lint(source: source, argsYAML: "severity: warning\n")
+        #expect(diagnostics.count == 1)
+        #expect(diagnostics[0].severity == .warning)
+    }
+
+    @Test("default severity is error without YAML override")
+    func defaultSeverityIsError() async {
+        let source = """
+        func foo() {
+            guard condition else { return }
+            if other {
+                hoge()
+            }
+        }
+        """
+        let diagnostics = await rule.lint(source: source)
+        #expect(diagnostics.count == 1)
+        #expect(diagnostics[0].severity == .error)
     }
 }

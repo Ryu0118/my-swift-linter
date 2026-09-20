@@ -23,7 +23,7 @@ default/effective arguments, enabled state, and path filters.
 | `test-function-naming` | error | No | `severity`, `check_spaces`, `check_underscores`, `check_test_prefix` | Swift Testing `@Test` functions with backtick phrase names, underscores, or redundant `test` prefixes. |
 | `test-description-duplicates-name` | error | No | `severity` | `@Test` or `@Suite` descriptions that merely restate the function or type name and add no information. |
 | `missing-docs` | error | No | `min_access_level`, `severity`, `ignore_patterns` | Explicit declarations at or above the configured access level that lack doc comments. |
-| `collapsible-if` | warning | No | — | An `if`/`guard` whose body contains only a single else-less nested `if`. |
+| `collapsible-if` | error | No | `severity` | An `if`/`guard` whose body contains only a single else-less nested `if`. |
 
 ## Rule Details
 
@@ -231,4 +231,11 @@ Not flagged when: either `if` has an `else` clause, the outer body has statement
 
 Shadowed optional bindings (`if let x = a { if let x = x.child { ... } }`) are still flagged since the nesting is redundant, but the message notes a mechanical merge would redeclare the name — the fix must be done by hand.
 
-No configuration options and no automatic fix (merging condition lists can require manual rewrites when bindings shadow).
+No automatic fix (merging condition lists can require manual rewrites when bindings shadow).
+
+```yaml
+rules:
+  collapsible-if:
+    args:
+      severity: error
+```
