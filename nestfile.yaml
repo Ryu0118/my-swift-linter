@@ -13,9 +13,9 @@ targets:
   assetName: gitnagg-0.3.0.artifactbundle.zip
   checksum: 1a320a35e981e91efc035b4b2f7016d0e19c0afb51b7c62ba4154dc4c5ad1c75
 - reference: Ryu0118/my-swift-linter
-  version: 0.13.0
-  assetName: my-swift-linter-0.13.0.artifactbundle.zip
-  checksum: acf69f45a6b7ea88275bc7c3766c993f4d5e1fa3c74a80f6c68641ddfbd7c7af
+  version: 0.14.0
+  assetName: my-swift-linter-0.14.0.artifactbundle.zip
+  checksum: a5b5f2bb9312bcd6bc4dd194d94bb2e1a34027ef5996700bcc9c72dec863a030
 - reference: Ryu0118/docsync
   version: 0.3.1
   assetName: docsync-0.3.1.artifactbundle.zip
