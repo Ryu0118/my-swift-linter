@@ -42,4 +42,4 @@ rules:
   doc: README.md
   message: "Agent skill/plugin manifests changed \u2014 update README installation
     instructions."
-  checksum: 4ffc88f2a9daf076b5d226ce50884ac4b6825adbd98eec860c5c00437306fbb6
+  checksum: e151123262e63970ee43c1c17989a1054619f46d9d2746810c4664f4d55ed92f

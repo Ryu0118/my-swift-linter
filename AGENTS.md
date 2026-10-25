@@ -25,3 +25,7 @@ The docsync rules are expected to enforce these updates.
 ## Skill Distribution
 
 `skills/` is the single source of truth for agent skills. Claude Code, Codex, APM, and `.agents` entries should reference it through symlinks. Do not edit generated or linked copies as if they were independent sources.
+
+## Documentation and Code
+
+When documentation and the existing code disagree, follow the conventions used in the existing code, and in your final reply list every inconsistency you found between the documentation and the code.
