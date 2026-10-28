@@ -1,7 +1,9 @@
 nestPath: ./.nest
 targets:
 - reference: nicklockwood/SwiftFormat
-  version: 0.64.2
+  version: 0.64.4
+  assetName: swiftformat.artifactbundle.zip
+  checksum: c2ba19f5f70a1aba089f836ada7960268ec9a68671d61059fec1a565afb50836
 - reference: realm/SwiftLint
   version: 0.65.1
   assetName: SwiftLintBinary.artifactbundle.zip
